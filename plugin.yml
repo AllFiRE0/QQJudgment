@@ -1,0 +1,46 @@
+name: QQJudgment
+version: 1.0.0
+main: com.allfire.qqjudgment.QQJudgment
+api-version: "1.21"
+author: AllF1RE
+description: Судная ночь плагин с интеграцией WorldGuard
+depend: [WorldGuard]
+softdepend: [WorldEdit]
+
+commands:
+  qqjudgment:
+    aliases: [qqj, суднаяночь, сн]
+    description: Главная команда плагина
+    permission: qqjudgment.use
+
+permissions:
+  qqjudgment.use:
+    description: Разрешает использование команды
+    default: true
+  qqjudgment.start:
+    description: Разрешает запуск судной ночи
+    default: op
+  qqjudgment.stop:
+    description: Разрешает остановку судной ночи
+    default: op
+  qqjudgment.bypass.pvp:
+    description: Обход запрета PVP в регионах
+    default: false
+  qqjudgment.bypass.sleep:
+    description: Игнорирование запрета сна
+    default: false
+  qqjudgment.bypass.elytra:
+    description: Игнорирование запрета элитры
+    default: false
+  qqjudgment.bypass.fly:
+    description: Игнорирование запрета полета
+    default: false
+  qqjudgment.bypass.god:
+    description: Игнорирование запрета бога
+    default: false
+  qqjudgment.bypass.commands:
+    description: Игнорирование запрета команд
+    default: false
+  qqjudgment.bypass.mobspawn:
+    description: Игнорирование спавна мобов
+    default: false
