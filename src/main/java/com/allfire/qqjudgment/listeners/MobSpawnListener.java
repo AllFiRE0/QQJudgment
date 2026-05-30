@@ -67,33 +67,8 @@ public class MobSpawnListener implements Listener {
                 long delayMillis = delayTicks * 50L;
                 
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
-                    // Проверка на bypass право (если есть право - пропускаем)
-                    if (player.hasPermission("qqjudgment.bypass.mobspawn")) {
-                        if (debug) {
-                            plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " имеет bypass право, пропускаем");
-                        }
-                        continue;
-                    }
-                    
-                    // Проверка режима игры (только выживание и приключение)
-                    GameMode gm = player.getGameMode();
-                    if (gm == GameMode.CREATIVE || gm == GameMode.SPECTATOR) {
-                        if (debug) {
-                            plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " в режиме " + gm + ", пропускаем");
-                        }
-                        continue;
-                    }
-                    
-                    // Проверка времени суток (спавн только в ночное время или под землей)
-                    World world = player.getWorld();
-                    long time = world.getTime();
-                    boolean isNight = time >= 13000 && time <= 23000;
-                    boolean isUnderground = player.getLocation().getY() < 50;
-                    
-                    if (!isNight && !isUnderground) {
-                        if (debug) {
-                            plugin.getLogger().info("[MobSpawn] Сейчас день и игрок не под землей, пропускаем " + player.getName());
-                        }
+                    // Пропускаем игроков, которым не нужен спавн мобов
+                    if (shouldSkipPlayer(player)) {
                         continue;
                     }
                     
@@ -114,6 +89,31 @@ public class MobSpawnListener implements Listener {
         }
     }
     
+    private boolean shouldSkipPlayer(Player player) {
+        // Bypass право - пропускаем без логов
+        if (player.hasPermission("qqjudgment.bypass.mobspawn")) {
+            return true;
+        }
+        
+        // Режим CREATIVE или SPECTATOR - пропускаем без логов
+        GameMode gm = player.getGameMode();
+        if (gm == GameMode.CREATIVE || gm == GameMode.SPECTATOR) {
+            return true;
+        }
+        
+        // Дневное время и не под землей - пропускаем без логов
+        World world = player.getWorld();
+        long time = world.getTime();
+        boolean isNight = time >= 13000 && time <= 23000;
+        boolean isUnderground = player.getLocation().getY() < 50;
+        
+        if (!isNight && !isUnderground) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         if (!judgmentManager.isJudgmentActive()) return;
@@ -121,20 +121,8 @@ public class MobSpawnListener implements Listener {
         
         Player player = event.getPlayer();
         
-        // Проверка bypass права
-        if (player.hasPermission("qqjudgment.bypass.mobspawn")) return;
-        
-        // Проверка режима игры
-        GameMode gm = player.getGameMode();
-        if (gm == GameMode.CREATIVE || gm == GameMode.SPECTATOR) return;
-        
-        // Проверка времени суток
-        World world = player.getWorld();
-        long time = world.getTime();
-        boolean isNight = time >= 13000 && time <= 23000;
-        boolean isUnderground = player.getLocation().getY() < 50;
-        
-        if (!isNight && !isUnderground) return;
+        // Пропускаем неподходящих игроков
+        if (shouldSkipPlayer(player)) return;
         
         long delayTicks = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400);
         long delayMillis = delayTicks * 50L;
@@ -180,7 +168,7 @@ public class MobSpawnListener implements Listener {
         
         for (Map.Entry<String, Integer> entry : mobs.entrySet()) {
             String mobName = entry.getKey();
-            int attempts = entry.getValue() * 3; // Делаем больше попыток для поиска места
+            int attempts = entry.getValue() * 3;
             
             for (int i = 0; i < attempts; i++) {
                 double angle = Math.random() * 2 * Math.PI;
@@ -191,15 +179,8 @@ public class MobSpawnListener implements Listener {
                 
                 Location spawnLoc = new Location(world, x, y, z);
                 
-                // Ищем подходящую поверхность для спавна
                 for (int offset = -3; offset <= 3; offset++) {
                     Location checkLoc = spawnLoc.clone().add(0, offset, 0);
-                    
-                    // Условия для ванильного спавна мобов:
-                    // 1. Блок под ногами твердый
-                    // 2. Блок над головой не твердый (воздух)
-                    // 3. Уровень освещения достаточно низкий (для зомби/скелетов < 7)
-                    // 4. Игрок не слишком близко (уже есть, distance >= 5)
                     
                     if (checkLoc.getBlock().getType().isSolid() && 
                         checkLoc.clone().add(0, 1, 0).getBlock().isEmpty() &&
@@ -207,31 +188,24 @@ public class MobSpawnListener implements Listener {
                         
                         Location finalLoc = checkLoc.clone().add(0, 1, 0);
                         
-                        // Проверка освещения для враждебных мобов
                         int lightLevel = finalLoc.getBlock().getLightLevel();
                         EntityType type = EntityType.valueOf(mobName.toUpperCase());
                         
-                        // Зомби и скелеты требуют уровень света <= 7
                         boolean canSpawn = true;
                         if ((type == EntityType.ZOMBIE || type == EntityType.SKELETON || 
                              type == EntityType.HUSK || type == EntityType.STRAY) && lightLevel > 7) {
                             canSpawn = false;
-                            if (debug) {
-                                plugin.getLogger().info("[MobSpawn] Слишком светло (" + lightLevel + ") для " + mobName);
-                            }
                         }
                         
-                        // Пауки и другие могут спавниться при любом свете, но реже
                         if (canSpawn) {
                             try {
                                 world.spawnEntity(finalLoc, type);
                                 totalSpawned++;
                                 if (debug) {
                                     plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName + " в " + 
-                                        finalLoc.getBlockX() + "," + finalLoc.getBlockY() + "," + finalLoc.getBlockZ() + 
-                                        " (свет: " + lightLevel + ")");
+                                        finalLoc.getBlockX() + "," + finalLoc.getBlockY() + "," + finalLoc.getBlockZ());
                                 }
-                                break; // Успешно заспавнили, выходим из цикла offset
+                                break;
                             } catch (Exception e) {
                                 if (debug) plugin.getLogger().warning("[MobSpawn] Ошибка спавна: " + e.getMessage());
                             }
@@ -243,8 +217,6 @@ public class MobSpawnListener implements Listener {
         
         if (debug && totalSpawned > 0) {
             plugin.getLogger().info("[MobSpawn] Всего заспавнено мобов: " + totalSpawned + " для " + player.getName());
-        } else if (debug && totalSpawned == 0) {
-            plugin.getLogger().info("[MobSpawn] Не удалось заспавнить мобов для " + player.getName() + " (нет подходящих мест)");
         }
     }
     
