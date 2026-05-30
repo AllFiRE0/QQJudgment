@@ -2,6 +2,7 @@ package com.allfire.qqjudgment.listeners;
 
 import com.allfire.qqjudgment.QQJudgment;
 import com.allfire.qqjudgment.managers.JudgmentManager;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
@@ -22,6 +23,7 @@ public class MobSpawnListener implements Listener {
     private final Map<UUID, Long> lastSpawnTime = new HashMap<>();
     private BukkitRunnable spawnTask;
     private boolean debug;
+    private boolean isRunning = false;
     
     public MobSpawnListener(QQJudgment plugin) {
         this.plugin = plugin;
@@ -33,63 +35,106 @@ public class MobSpawnListener implements Listener {
             plugin.getLogger().info("[MobSpawn] Debug режим ВКЛЮЧЕН");
         }
         
-        // Запускаем периодическую проверку для всех игроков
-        startGlobalSpawnTask();
+        startCheckerTask();
     }
     
-    private void startGlobalSpawnTask() {
-        long delayTicks = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400);
-        
+    private void startCheckerTask() {
         spawnTask = new BukkitRunnable() {
             @Override
             public void run() {
                 if (!judgmentManager.isJudgmentActive()) {
-                    if (debug) plugin.getLogger().info("[MobSpawn] СН не активна, спавн пропущен");
-                    return;
-                }
-                if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
-                    if (debug) plugin.getLogger().info("[MobSpawn] Спавн мобов выключен в конфиге");
+                    if (isRunning && debug) {
+                        plugin.getLogger().info("[MobSpawn] СН закончилась, останавливаем спавн мобов");
+                        isRunning = false;
+                    }
                     return;
                 }
                 
-                int spawned = 0;
+                if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
+                    if (isRunning && debug) {
+                        plugin.getLogger().info("[MobSpawn] Спавн мобов выключен в конфиге");
+                        isRunning = false;
+                    }
+                    return;
+                }
+                
+                if (!isRunning && debug) {
+                    plugin.getLogger().info("[MobSpawn] СН активна, начинаем спавн мобов");
+                    isRunning = true;
+                }
+                
+                long delayTicks = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400);
+                long delayMillis = delayTicks * 50L;
+                
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
+                    // Проверка на bypass право (если есть право - пропускаем)
                     if (player.hasPermission("qqjudgment.bypass.mobspawn")) {
-                        if (debug) plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " имеет bypass, пропускаем");
+                        if (debug) {
+                            plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " имеет bypass право, пропускаем");
+                        }
+                        continue;
+                    }
+                    
+                    // Проверка режима игры (только выживание и приключение)
+                    GameMode gm = player.getGameMode();
+                    if (gm == GameMode.CREATIVE || gm == GameMode.SPECTATOR) {
+                        if (debug) {
+                            plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " в режиме " + gm + ", пропускаем");
+                        }
+                        continue;
+                    }
+                    
+                    // Проверка времени суток (спавн только в ночное время или под землей)
+                    World world = player.getWorld();
+                    long time = world.getTime();
+                    boolean isNight = time >= 13000 && time <= 23000;
+                    boolean isUnderground = player.getLocation().getY() < 50;
+                    
+                    if (!isNight && !isUnderground) {
+                        if (debug) {
+                            plugin.getLogger().info("[MobSpawn] Сейчас день и игрок не под землей, пропускаем " + player.getName());
+                        }
                         continue;
                     }
                     
                     long lastSpawn = lastSpawnTime.getOrDefault(player.getUniqueId(), 0L);
                     long currentTime = System.currentTimeMillis();
-                    long delayMillis = delayTicks * 50L;
                     
                     if (currentTime - lastSpawn >= delayMillis) {
                         lastSpawnTime.put(player.getUniqueId(), currentTime);
                         spawnMobsAroundPlayer(player);
-                        spawned++;
                     }
-                }
-                
-                if (debug && spawned > 0) {
-                    plugin.getLogger().info("[MobSpawn] Заспавнены мобы для " + spawned + " игроков");
                 }
             }
         };
         
-        // Запускаем каждые 20 тиков (1 секунда)
         spawnTask.runTaskTimer(plugin, 0L, 20L);
         if (debug) {
-            plugin.getLogger().info("[MobSpawn] Глобальный таск запущен, интервал: " + delayTicks + " тиков");
+            plugin.getLogger().info("[MobSpawn] Чекер-таск запущен");
         }
     }
     
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) return;
         if (!judgmentManager.isJudgmentActive()) return;
+        if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) return;
         
         Player player = event.getPlayer();
+        
+        // Проверка bypass права
         if (player.hasPermission("qqjudgment.bypass.mobspawn")) return;
+        
+        // Проверка режима игры
+        GameMode gm = player.getGameMode();
+        if (gm == GameMode.CREATIVE || gm == GameMode.SPECTATOR) return;
+        
+        // Проверка времени суток
+        World world = player.getWorld();
+        long time = world.getTime();
+        boolean isNight = time >= 13000 && time <= 23000;
+        boolean isUnderground = player.getLocation().getY() < 50;
+        
+        if (!isNight && !isUnderground) return;
         
         long delayTicks = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400);
         long delayMillis = delayTicks * 50L;
@@ -110,12 +155,8 @@ public class MobSpawnListener implements Listener {
         Location center = player.getLocation();
         World world = center.getWorld();
         
-        if (world == null) {
-            if (debug) plugin.getLogger().warning("[MobSpawn] Мир не найден для игрока " + player.getName());
-            return;
-        }
+        if (world == null) return;
         
-        // Получаем мобов из конфига
         Map<String, Integer> mobs = new HashMap<>();
         if (plugin.getConfig().contains("mob-spawning.mobs")) {
             Map<String, Object> mobsRaw = plugin.getConfig().getConfigurationSection("mob-spawning.mobs").getValues(false);
@@ -127,59 +168,74 @@ public class MobSpawnListener implements Listener {
         }
         
         if (mobs.isEmpty()) {
-            if (debug) plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге! Добавьте мобов в секцию mob-spawning.mobs");
+            if (debug) plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге!");
             return;
         }
         
         if (debug) {
-            plugin.getLogger().info("[MobSpawn] Спавним мобов для игрока " + player.getName() + " (радиус: " + radius + ")");
+            plugin.getLogger().info("[MobSpawn] Попытка спавна мобов для " + player.getName());
         }
         
         int totalSpawned = 0;
         
         for (Map.Entry<String, Integer> entry : mobs.entrySet()) {
             String mobName = entry.getKey();
-            int count = entry.getValue();
+            int attempts = entry.getValue() * 3; // Делаем больше попыток для поиска места
             
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < attempts; i++) {
                 double angle = Math.random() * 2 * Math.PI;
-                double distance = 2 + Math.random() * (radius - 2);
+                double distance = 5 + Math.random() * (radius - 5);
                 double x = center.getX() + Math.cos(angle) * distance;
                 double z = center.getZ() + Math.sin(angle) * distance;
                 double y = center.getY();
                 
                 Location spawnLoc = new Location(world, x, y, z);
                 
-                // Ищем подходящий блок для спавна
-                boolean foundSpot = false;
-                for (int offset = -2; offset <= 2; offset++) {
+                // Ищем подходящую поверхность для спавна
+                for (int offset = -3; offset <= 3; offset++) {
                     Location checkLoc = spawnLoc.clone().add(0, offset, 0);
+                    
+                    // Условия для ванильного спавна мобов:
+                    // 1. Блок под ногами твердый
+                    // 2. Блок над головой не твердый (воздух)
+                    // 3. Уровень освещения достаточно низкий (для зомби/скелетов < 7)
+                    // 4. Игрок не слишком близко (уже есть, distance >= 5)
+                    
                     if (checkLoc.getBlock().getType().isSolid() && 
                         checkLoc.clone().add(0, 1, 0).getBlock().isEmpty() &&
                         checkLoc.clone().add(0, 2, 0).getBlock().isEmpty()) {
-                        spawnLoc = checkLoc.clone().add(0, 1, 0);
-                        foundSpot = true;
-                        break;
-                    }
-                }
-                
-                if (!foundSpot) {
-                    if (debug) plugin.getLogger().warning("[MobSpawn] Не найдено место для спавна " + mobName);
-                    continue;
-                }
-                
-                try {
-                    EntityType type = EntityType.valueOf(mobName.toUpperCase());
-                    world.spawnEntity(spawnLoc, type);
-                    totalSpawned++;
-                    if (debug) {
-                        plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName + " в " + 
-                            spawnLoc.getBlockX() + "," + spawnLoc.getBlockY() + "," + spawnLoc.getBlockZ());
-                    }
-                } catch (IllegalArgumentException e) {
-                    if (debug) {
-                        plugin.getLogger().warning("[MobSpawn] Неизвестный тип моба: " + mobName + 
-                            ". Доступные: ZOMBIE, SKELETON, SPIDER, CREEPER, HUSK, DROWNED и т.д.");
+                        
+                        Location finalLoc = checkLoc.clone().add(0, 1, 0);
+                        
+                        // Проверка освещения для враждебных мобов
+                        int lightLevel = finalLoc.getBlock().getLightLevel();
+                        EntityType type = EntityType.valueOf(mobName.toUpperCase());
+                        
+                        // Зомби и скелеты требуют уровень света <= 7
+                        boolean canSpawn = true;
+                        if ((type == EntityType.ZOMBIE || type == EntityType.SKELETON || 
+                             type == EntityType.HUSK || type == EntityType.STRAY) && lightLevel > 7) {
+                            canSpawn = false;
+                            if (debug) {
+                                plugin.getLogger().info("[MobSpawn] Слишком светло (" + lightLevel + ") для " + mobName);
+                            }
+                        }
+                        
+                        // Пауки и другие могут спавниться при любом свете, но реже
+                        if (canSpawn) {
+                            try {
+                                world.spawnEntity(finalLoc, type);
+                                totalSpawned++;
+                                if (debug) {
+                                    plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName + " в " + 
+                                        finalLoc.getBlockX() + "," + finalLoc.getBlockY() + "," + finalLoc.getBlockZ() + 
+                                        " (свет: " + lightLevel + ")");
+                                }
+                                break; // Успешно заспавнили, выходим из цикла offset
+                            } catch (Exception e) {
+                                if (debug) plugin.getLogger().warning("[MobSpawn] Ошибка спавна: " + e.getMessage());
+                            }
+                        }
                     }
                 }
             }
@@ -187,6 +243,8 @@ public class MobSpawnListener implements Listener {
         
         if (debug && totalSpawned > 0) {
             plugin.getLogger().info("[MobSpawn] Всего заспавнено мобов: " + totalSpawned + " для " + player.getName());
+        } else if (debug && totalSpawned == 0) {
+            plugin.getLogger().info("[MobSpawn] Не удалось заспавнить мобов для " + player.getName() + " (нет подходящих мест)");
         }
     }
     
@@ -194,7 +252,7 @@ public class MobSpawnListener implements Listener {
         if (spawnTask != null) {
             spawnTask.cancel();
             spawnTask = null;
-            if (debug) plugin.getLogger().info("[MobSpawn] Глобальный таск остановлен");
+            if (debug) plugin.getLogger().info("[MobSpawn] Чекер-таск остановлен");
         }
     }
 }
