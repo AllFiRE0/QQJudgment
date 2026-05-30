@@ -62,10 +62,11 @@ public class JudgmentManager {
             }
         }.runTaskLater(plugin, plugin.getConfig().getInt("bossbar.start-delay", 3) * 20L);
         
+        // ИСПРАВЛЕНО: передаем silent в stopJudgment
         judgmentTask = new BukkitRunnable() {
             @Override
             public void run() {
-                stopJudgment(false);
+                stopJudgment(silent);
             }
         }.runTaskLater(plugin, seconds * 20L);
         
