@@ -150,4 +150,14 @@ public final class QQJudgment extends JavaPlugin {
     public boolean isDebug() {
         return debug;
     }
+        public MobSpawnListener getMobSpawnListener() {
+        return mobSpawnListener;
+    }
+    
+    public void setMobSpawnListener(MobSpawnListener listener) {
+        if (this.mobSpawnListener != null) {
+            this.mobSpawnListener.stop();
+        }
+        this.mobSpawnListener = listener;
+    }
 }
