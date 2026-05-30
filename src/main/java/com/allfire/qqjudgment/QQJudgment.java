@@ -80,7 +80,9 @@ public final class QQJudgment extends JavaPlugin {
             new PlayerActionListener(this);
             if (debug) getLogger().info("[QQJudgment] PlayerActionListener зарегистрирован");
             
-            // Всегда создаем слушатель, он сам проверит enabled в своем коде
+            new PlayerJoinListener(this);
+            if (debug) getLogger().info("[QQJudgment] PlayerJoinListener зарегистрирован");
+            
             mobSpawnListener = new MobSpawnListener(this);
             if (debug) {
                 getLogger().info("[QQJudgment] MobSpawnListener зарегистрирован (enabled: " + 
