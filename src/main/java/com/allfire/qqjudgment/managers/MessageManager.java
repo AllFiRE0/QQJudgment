@@ -2,7 +2,6 @@ package com.allfire.qqjudgment.managers;
 
 import com.allfire.qqjudgment.QQJudgment;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
@@ -57,13 +56,11 @@ public class MessageManager {
     }
     
     private void sendFormattedMessage(CommandSender sender, String message) {
-        // Обработка PlaceholderAPI для игроков
         String parsedMessage = message;
         if (sender instanceof Player player && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             parsedMessage = PlaceholderAPI.setPlaceholders(player, message);
         }
         
-        // Actionbar
         Matcher actionbarMatcher = actionbarPattern.matcher(parsedMessage);
         if (actionbarMatcher.matches()) {
             String durationStr = actionbarMatcher.group(1);
@@ -71,15 +68,13 @@ public class MessageManager {
             Component component = parseMessage(content);
             
             if (durationStr != null) {
-                int duration = Integer.parseInt(durationStr);
-                sendActionBarWithDuration(sender, component, duration);
+                sendActionBar(sender, component);
             } else {
                 sendActionBar(sender, component);
             }
             return;
         }
         
-        // Title
         Matcher titleMatcher = titlePattern.matcher(parsedMessage);
         if (titleMatcher.matches()) {
             String fadeIn = titleMatcher.group(1);
@@ -101,14 +96,11 @@ public class MessageManager {
             return;
         }
         
-        // Обычное сообщение
         sender.sendMessage(parseMessage(parsedMessage));
     }
     
     public Component parseMessage(String message) {
-        // Конвертация & цветов в MiniMessage
         String converted = convertLegacyToMiniMessage(message);
-        // Конвертация CMI градиентов
         converted = convertCMIGradients(converted);
         
         try {
@@ -119,7 +111,6 @@ public class MessageManager {
     }
     
     private String convertLegacyToMiniMessage(String message) {
-        // &x&f&f&f&f&f&f -> <#ffffff>
         Pattern hexPattern = Pattern.compile("&x(&[0-9a-fA-F]){6}");
         Matcher hexMatcher = hexPattern.matcher(message);
         while (hexMatcher.find()) {
@@ -128,10 +119,8 @@ public class MessageManager {
             message = message.replace(hexCode, "<#" + color + ">");
         }
         
-        // &#FFFFFF -> <#FFFFFF>
         message = message.replaceAll("&#([0-9a-fA-F]{6})", "<#$1>");
         
-        // &f, &a, &c etc -> стандартные MiniMessage
         message = message.replace("&0", "<black>")
                 .replace("&1", "<dark_blue>")
                 .replace("&2", "<dark_green>")
@@ -180,13 +169,6 @@ public class MessageManager {
     private void sendActionBar(CommandSender sender, Component component) {
         if (sender instanceof Player player) {
             plugin.getAdventure().player(player).sendActionBar(component);
-        }
-    }
-    
-    private void sendActionBarWithDuration(CommandSender sender, Component component, int durationTicks) {
-        if (sender instanceof Player player) {
-            plugin.getAdventure().player(player).sendActionBar(component);
-            // Для длительности потребуется повторная отправка, но это базовая реализация
         }
     }
     
