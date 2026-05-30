@@ -50,7 +50,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
     
     private int getRemainingSeconds() {
         if (!judgmentManager.isJudgmentActive()) return 0;
-        return judgmentManager.getRemainingSeconds();
+        return Math.max(0, judgmentManager.getRemainingSeconds());
     }
     
     private Duration getDuration() {
@@ -97,7 +97,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return "0";
+            return customFallback != null ? customFallback : "0";
         }
         
         // ========== КОМПОНЕНТЫ ВРЕМЕНИ ==========
@@ -171,7 +171,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return "§cНе активна";
         }
         
-        // ========== ПРОГРЕСС ==========
+        // ========== ПРОГРЕСС (возвращает только число, без оформления) ==========
         
         if (mainParam.equalsIgnoreCase("progress")) {
             if (!judgmentManager.isJudgmentActive()) {
@@ -180,21 +180,11 @@ public class PlaceholderHook extends PlaceholderExpansion {
             int totalSeconds = 3600;
             int remaining = judgmentManager.getRemainingSeconds();
             int percent = (int) ((double) (totalSeconds - remaining) / totalSeconds * 100);
-            return String.valueOf(Math.min(100, Math.max(0, percent)));
+            percent = Math.min(100, Math.max(0, percent));
+            return String.valueOf(percent);
         }
         
-        if (mainParam.equalsIgnoreCase("progress_bar")) {
-            if (!judgmentManager.isJudgmentActive()) {
-                return customFallback != null ? customFallback : "■■■■■■■■■■";
-            }
-            int totalSeconds = 3600;
-            int remaining = judgmentManager.getRemainingSeconds();
-            int percent = (int) ((double) (totalSeconds - remaining) / totalSeconds * 10);
-            percent = Math.min(10, Math.max(0, percent));
-            return "█".repeat(percent) + "░".repeat(10 - percent);
-        }
-        
-        // ========== ТОП ИГРОКОВ ==========
+        // ========== ТОП ИГРОКОВ (ВСЕГДА возвращает данные, fallback только если нет игроков) ==========
         
         if (mainParam.toLowerCase().startsWith("top_")) {
             String[] parts = mainParam.split("_");
@@ -214,6 +204,9 @@ public class PlaceholderHook extends PlaceholderExpansion {
                             return String.valueOf(entry.getScore());
                         }
                         return entry.getName() + ": " + entry.getScore();
+                    } else {
+                        // Нет игрока на этом месте - возвращаем fallback
+                        return fallbackToUse;
                     }
                 } catch (NumberFormatException ignored) {}
             }
@@ -226,7 +219,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         if (mainParam.equalsIgnoreCase("deaths") || mainParam.equalsIgnoreCase("death_fallbackMsg")) {
             int deaths = statsManager.getPlayerDeaths(player.getUniqueId());
-            if (deaths > 0 || judgmentManager.isJudgmentActive()) {
+            if (deaths > 0) {
                 return String.valueOf(deaths);
             }
             return fallbackToUse;
@@ -234,7 +227,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         if (mainParam.equalsIgnoreCase("kills_players") || mainParam.equalsIgnoreCase("kills_players_fallbackMsg")) {
             int kills = statsManager.getPlayerPlayerKills(player.getUniqueId());
-            if (kills > 0 || judgmentManager.isJudgmentActive()) {
+            if (kills > 0) {
                 return String.valueOf(kills);
             }
             return fallbackToUse;
@@ -242,7 +235,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         if (mainParam.equalsIgnoreCase("kills_mobs") || mainParam.equalsIgnoreCase("kills_mobs_fallbackMsg")) {
             int kills = statsManager.getPlayerMobKills(player.getUniqueId());
-            if (kills > 0 || judgmentManager.isJudgmentActive()) {
+            if (kills > 0) {
                 return String.valueOf(kills);
             }
             return fallbackToUse;
@@ -251,7 +244,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         if (mainParam.equalsIgnoreCase("total_kills") || mainParam.equalsIgnoreCase("total_kills_fallbackMsg")) {
             int total = statsManager.getPlayerPlayerKills(player.getUniqueId()) + 
                        statsManager.getPlayerMobKills(player.getUniqueId());
-            if (total > 0 || judgmentManager.isJudgmentActive()) {
+            if (total > 0) {
                 return String.valueOf(total);
             }
             return fallbackToUse;
@@ -270,7 +263,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             "seconds", "seconds_padded",
             "total_minutes", "total_seconds",
             "is_active", "active_text",
-            "progress", "progress_bar",
+            "progress",
             "deaths", "death_fallbackMsg",
             "kills_players", "kills_players_fallbackMsg",
             "kills_mobs", "kills_mobs_fallbackMsg",
@@ -309,11 +302,9 @@ public class PlaceholderHook extends PlaceholderExpansion {
         placeholders.add("is_active");
         placeholders.add("active_text");
         
-        // Прогресс
+        // Прогресс (только число)
         placeholders.add("progress");
-        placeholders.add("progress_0%");
-        placeholders.add("progress_bar");
-        placeholders.add("progress_bar_░░░░░░░░░░");
+        placeholders.add("progress_0");
         
         // Топ игроков (1-10)
         for (int i = 1; i <= 10; i++) {
