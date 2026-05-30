@@ -10,12 +10,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
-import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
 
 import java.util.List;
-import java.util.UUID;
 
 public class PlayerActionListener implements Listener {
     
@@ -79,10 +76,5 @@ public class PlayerActionListener implements Listener {
             event.setCancelled(true);
             plugin.getMessageManager().sendMessage(event.getPlayer(), "cant-sleep", true);
         }
-    }
-    
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        // Очистка данных при выходе (опционально)
     }
 }
