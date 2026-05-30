@@ -39,7 +39,6 @@ public class BossBarManager {
                 BossBar.Overlay.NOTCHED_20
         );
         
-        // Настройка сегментов
         switch (segments) {
             case 6 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_6).build();
             case 10 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_10).build();
@@ -54,7 +53,6 @@ public class BossBarManager {
             plugin.getAdventure().player(player).showBossBar(playerBar);
         }
         
-        // Запускаем обновление
         startUpdater();
     }
     
@@ -104,9 +102,7 @@ public class BossBarManager {
             public void run() {
                 if (!plugin.getJudgmentManager().isJudgmentActive()) {
                     this.cancel();
-                    return;
                 }
-                // Обновление происходит через JudgmentManager
             }
         };
         updateTask.runTaskTimer(plugin, 0L, updateTicks);
