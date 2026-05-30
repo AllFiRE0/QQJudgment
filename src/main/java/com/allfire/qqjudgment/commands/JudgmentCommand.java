@@ -33,6 +33,21 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
+        // Команда перезагрузки
+        if (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("rl")) {
+            if (!sender.hasPermission("qqjudgment.reload")) {
+                plugin.getMessageManager().sendMessage(sender, "no-permission", false);
+                return true;
+            }
+            
+            // Перезагружаем конфиг
+            plugin.reloadConfig();
+            sender.sendMessage(plugin.getMessageManager().parseMessage("&a✅ Плагин QQJudgment перезагружен!"));
+            sender.sendMessage(plugin.getMessageManager().parseMessage("&7Новые настройки применены."));
+            return true;
+        }
+        
+        // Команда проверки papi
         if (args[0].equalsIgnoreCase("papi")) {
             if (!sender.hasPermission("qqjudgment.placeholder.parse")) {
                 plugin.getMessageManager().sendMessage(sender, "no-permission", false);
@@ -67,6 +82,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
+        // Основная логика команды
         if (args.length < 2) {
             sendHelp(sender);
             return true;
@@ -125,16 +141,20 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             completions.add("1800");
             completions.add("3600");
             completions.add("7200");
+            completions.add("reload");
+            completions.add("rl");
             completions.add("papi");
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("papi")) {
                 completions.add("<текст с %заполнителями%>");
                 completions.addAll(getPlaceholderExamples());
+            } else if (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("rl")) {
+                // Нет подсказок для reload
             } else {
                 if (sender.hasPermission("qqjudgment.start")) completions.add("start");
                 if (sender.hasPermission("qqjudgment.stop")) completions.add("stop");
             }
-        } else if (args.length == 3 && !args[0].equalsIgnoreCase("papi")) {
+        } else if (args.length == 3 && !args[0].equalsIgnoreCase("papi") && !args[0].equalsIgnoreCase("reload")) {
             completions.add("-s");
         } else if (args.length >= 2 && args[0].equalsIgnoreCase("papi")) {
             completions.addAll(getPlaceholderCompletions(args[args.length - 1]));
@@ -147,6 +167,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§6=== QQJudgment Help ===");
         sender.sendMessage("§e/qqjudgment <секунд> start [-s] §7- Запустить судную ночь");
         sender.sendMessage("§e/qqjudgment <секунд> stop [-s] §7- Остановить судную ночь");
+        sender.sendMessage("§e/qqjudgment reload §7- Перезагрузить конфиг");
         sender.sendMessage("§e/qqjudgment papi <текст> §7- Проверить заполнители");
         sender.sendMessage("");
         sender.sendMessage("§7Примеры заполнителей:");
@@ -173,16 +194,21 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             "%qqjudgment_time_end%",
             "%qqjudgment_seconds_end%",
             "%qqjudgment_is_active%",
+            "%qqjudgment_hours%",
+            "%qqjudgment_hours_padded%",
+            "%qqjudgment_minutes%",
+            "%qqjudgment_minutes_padded%",
+            "%qqjudgment_seconds%",
+            "%qqjudgment_seconds_padded%",
+            "%qqjudgment_total_minutes%",
+            "%qqjudgment_total_seconds%",
+            "%qqjudgment_progress%",
+            "%qqjudgment_progress_bar%",
             "%qqjudgment_top_1_fallbackMsg%",
             "%qqjudgment_top_2_fallbackMsg%",
             "%qqjudgment_top_3_fallbackMsg%",
             "%qqjudgment_top_4_fallbackMsg%",
             "%qqjudgment_top_5_fallbackMsg%",
-            "%qqjudgment_top_6_fallbackMsg%",
-            "%qqjudgment_top_7_fallbackMsg%",
-            "%qqjudgment_top_8_fallbackMsg%",
-            "%qqjudgment_top_9_fallbackMsg%",
-            "%qqjudgment_top_10_fallbackMsg%",
             "%qqjudgment_death_fallbackMsg%",
             "%qqjudgment_deaths%",
             "%qqjudgment_kills_players_fallbackMsg%",
@@ -190,8 +216,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             "%qqjudgment_kills_mobs_fallbackMsg%",
             "%qqjudgment_kills_mobs%",
             "%qqjudgment_total_kills_fallbackMsg%",
-            "%qqjudgment_total_kills%",
-            "%qqjudgment_remaining_percent%"
+            "%qqjudgment_total_kills%"
         );
         
         if (current == null || current.isEmpty()) return placeholders;
