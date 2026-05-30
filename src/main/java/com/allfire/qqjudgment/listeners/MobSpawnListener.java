@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,12 +34,12 @@ public class MobSpawnListener implements Listener {
         Player player = event.getPlayer();
         if (player.hasPermission("qqjudgment.bypass.mobspawn")) return;
         
-        long delay = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400);
+        long delayMillis = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400) * 50L; // конвертируем тики в миллисекунды
         long lastSpawn = lastSpawnTime.getOrDefault(player.getUniqueId(), 0L);
-        long currentTick = plugin.getServer().getCurrentTick();
+        long currentTime = System.currentTimeMillis();
         
-        if (currentTick - lastSpawn >= delay) {
-            lastSpawnTime.put(player.getUniqueId(), currentTick);
+        if (currentTime - lastSpawn >= delayMillis) {
+            lastSpawnTime.put(player.getUniqueId(), currentTime);
             spawnMobsAroundPlayer(player);
         }
     }
@@ -69,7 +68,7 @@ public class MobSpawnListener implements Listener {
                 double y = center.getY() + (Math.random() - 0.5) * 3;
                 
                 Location spawnLoc = new Location(world, x, y, z);
-                if (spawnLoc.getBlock().isPassable() && spawnLoc.getY() > 0) {
+                if (spawnLoc.getBlock().isPassable() && spawnLoc.getY() > 0 && spawnLoc.getY() < world.getMaxHeight()) {
                     try {
                         EntityType type = EntityType.valueOf(mobName.toUpperCase());
                         world.spawnEntity(spawnLoc, type);
