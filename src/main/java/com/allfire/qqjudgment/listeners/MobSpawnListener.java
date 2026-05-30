@@ -44,7 +44,6 @@ public class MobSpawnListener implements Listener {
         }
     }
     
-    @SuppressWarnings("unchecked")
     private void spawnMobsAroundPlayer(Player player) {
         int radius = plugin.getConfig().getInt("mob-spawning.radius", 15);
         Location center = player.getLocation();
