@@ -1,0 +1,33 @@
+# Compiled files
+target/
+*.class
+
+# IDE files
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Maven
+log/
+dependency-reduced-pom.xml
+.mvn/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Config with sensitive data (optional - если конфиг содержит пароли)
+# config.yml
+
+# Build artifacts
+build/
+out/
