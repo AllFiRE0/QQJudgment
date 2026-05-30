@@ -97,7 +97,20 @@ public class JudgmentManager {
             countdownTask = null;
         }
         
+        // Показываем финальный боссбар
         plugin.getBossBarManager().showEndBossBar();
+        
+        // Принудительно скрываем боссбар через end-delay + 1 секунду (на всякий случай)
+        int endDelay = plugin.getConfig().getInt("bossbar.end-delay", 3);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                plugin.getBossBarManager().hideBossBarFromAll();
+                if (debug) {
+                    plugin.getLogger().info("[Judgment] Боссбар принудительно скрыт");
+                }
+            }
+        }.runTaskLater(plugin, (endDelay + 1) * 20L);
         
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
