@@ -1,0 +1,121 @@
+name: Build QQJudgment Plugin
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '**.md'
+      - '**.gitignore'
+      - 'LICENSE'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - '**.gitignore'
+      - 'LICENSE'
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+    
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    
+    - name: Build with Maven
+      run: mvn clean compile package --no-transfer-progress
+    
+    - name: List target directory
+      run: ls -la target/
+    
+    - name: Upload artifact (JAR file)
+      uses: actions/upload-artifact@v4
+      with:
+        name: QQJudgment-Plugin
+        path: target/QQJudgment-*.jar
+        if-no-files-found: error
+    
+    - name: Upload sources (optional)
+      uses: actions/upload-artifact@v4
+      with:
+        name: QQJudgment-Sources
+        path: src/
+        if-no-files-found: warn
+
+  # Опциональная публикация в GitHub Releases при создании тега
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+    
+    - name: Build with Maven
+      run: mvn clean package --no-transfer-progress
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: QQJudgment v${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## QQJudgment v${{ steps.get_version.outputs.VERSION }}
+          
+          ### Изменения в этой версии:
+          - Полная поддержка Minecraft 1.21.3+
+          - Интеграция с WorldGuard
+          - Поддержка PlaceholderAPI
+          - Боссбар с настройками
+          - Система статистики игроков
+          
+          ### Установка:
+          1. Скачайте JAR файл
+          2. Поместите в папку `plugins/`
+          3. Перезапустите сервер
+          4. Настройте `config.yml`
+          
+          ### Команды:
+          - `/qqjudgment <секунд> start` - Запуск судной ночи
+          - `/qqjudgment <секунд> stop` - Остановка судной ночи
+          - `/qqjudgment papi <текст>` - Проверка заполнителей
+          
+          ### Требования:
+          - Java 21
+          - Paper 1.21.3+
+          - WorldGuard
+          - PlaceholderAPI (опционально)
+        files: |
+          target/QQJudgment-*.jar
+        draft: false
+        prerelease: false
+        generate_release_notes: true
