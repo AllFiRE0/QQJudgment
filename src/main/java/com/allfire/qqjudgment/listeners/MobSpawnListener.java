@@ -34,7 +34,7 @@ public class MobSpawnListener implements Listener {
         Player player = event.getPlayer();
         if (player.hasPermission("qqjudgment.bypass.mobspawn")) return;
         
-        long delayMillis = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400) * 50L; // конвертируем тики в миллисекунды
+        long delayMillis = plugin.getConfig().getLong("mob-spawning.delay-ticks", 400) * 50L;
         long lastSpawn = lastSpawnTime.getOrDefault(player.getUniqueId(), 0L);
         long currentTime = System.currentTimeMillis();
         
