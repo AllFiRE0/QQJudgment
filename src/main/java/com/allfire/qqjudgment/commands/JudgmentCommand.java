@@ -40,6 +40,12 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             }
             
             plugin.reloadConfig();
+            
+            if (plugin.getMobSpawnListener() != null) {
+                plugin.getMobSpawnListener().stop();
+            }
+            plugin.setMobSpawnListener(new com.allfire.qqjudgment.listeners.MobSpawnListener(plugin));
+            
             sender.sendMessage(plugin.getMessageManager().parseMessage("&a✅ Плагин QQJudgment перезагружен!"));
             sender.sendMessage(plugin.getMessageManager().parseMessage("&7Новые настройки применены."));
             return true;
