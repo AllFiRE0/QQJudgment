@@ -114,7 +114,7 @@ public class JudgmentManager {
                 if (remainingSeconds <= 0) {
                     this.cancel();
                 } else {
-                    plugin.getBossBarManager().updateProgress(getProgress());
+                    plugin.getBossBarManager().updateProgress((float) getProgress());
                     plugin.getBossBarManager().updateTitle(getFormattedTime());
                 }
             }
