@@ -43,8 +43,10 @@ public class StatsManager {
     
     public void recordPlayerDeath(UUID playerId) {
         if (!tracking) return;
-        // Этот метод вызывается из onPlayerDeath
-        // Смерть уже записана в recordPlayerKill для victim
+        JudgmentPlayer stats = playerStats.get(playerId);
+        if (stats != null) {
+            stats.addDeath();
+        }
     }
     
     public void recordMobKill(Player killer, EntityType mobType) {
