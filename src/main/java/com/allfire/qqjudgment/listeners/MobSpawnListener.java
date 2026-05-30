@@ -44,6 +44,7 @@ public class MobSpawnListener implements Listener {
         }
     }
     
+    @SuppressWarnings("unchecked")
     private void spawnMobsAroundPlayer(Player player) {
         int radius = plugin.getConfig().getInt("mob-spawning.radius", 15);
         Location center = player.getLocation();
@@ -53,7 +54,12 @@ public class MobSpawnListener implements Listener {
         
         Map<String, Integer> mobs = new HashMap<>();
         if (plugin.getConfig().contains("mob-spawning.mobs")) {
-            mobs = (Map<String, Integer>) plugin.getConfig().getConfigurationSection("mob-spawning.mobs").getValues(false);
+            Map<String, Object> mobsRaw = plugin.getConfig().getConfigurationSection("mob-spawning.mobs").getValues(false);
+            for (Map.Entry<String, Object> entry : mobsRaw.entrySet()) {
+                if (entry.getValue() instanceof Number) {
+                    mobs.put(entry.getKey(), ((Number) entry.getValue()).intValue());
+                }
+            }
         }
         
         for (Map.Entry<String, Integer> entry : mobs.entrySet()) {
