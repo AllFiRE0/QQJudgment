@@ -1,5 +1,7 @@
 package com.allfire.qqjudgment.hooks;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.flags.Flags;
@@ -31,10 +33,13 @@ public class WorldGuardHook {
     public boolean isInBlacklistedRegion(Location location, List<String> blacklistedRegions) {
         if (!hooked) return false;
         
-        RegionManager regionManager = worldGuard.getPlatform().getRegionContainer().get(location.getWorld());
+        com.sk89q.worldedit.world.World adaptedWorld = BukkitAdapter.adapt(location.getWorld());
+        RegionManager regionManager = worldGuard.getPlatform().getRegionContainer().get(adaptedWorld);
         if (regionManager == null) return false;
         
-        for (ProtectedRegion region : regionManager.getApplicableRegions(location)) {
+        BlockVector3 pos = BukkitAdapter.asBlockVector(location);
+        
+        for (ProtectedRegion region : regionManager.getApplicableRegions(pos)) {
             if (blacklistedRegions.contains(region.getId())) {
                 return true;
             }
@@ -45,10 +50,13 @@ public class WorldGuardHook {
     public boolean isPVPAllowed(Location location) {
         if (!hooked) return true;
         
-        RegionManager regionManager = worldGuard.getPlatform().getRegionContainer().get(location.getWorld());
+        com.sk89q.worldedit.world.World adaptedWorld = BukkitAdapter.adapt(location.getWorld());
+        RegionManager regionManager = worldGuard.getPlatform().getRegionContainer().get(adaptedWorld);
         if (regionManager == null) return true;
         
-        StateFlag.State state = regionManager.getApplicableRegions(location).queryState(null, Flags.PVP);
+        BlockVector3 pos = BukkitAdapter.asBlockVector(location);
+        
+        StateFlag.State state = regionManager.getApplicableRegions(pos).queryState(null, Flags.PVP);
         return state != StateFlag.State.DENY;
     }
     
