@@ -171,7 +171,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return "§cНе активна";
         }
         
-        // ========== ПРОГРЕСС (возвращает только число, без оформления) ==========
+        // ========== ПРОГРЕСС ==========
         
         if (mainParam.equalsIgnoreCase("progress")) {
             if (!judgmentManager.isJudgmentActive()) {
@@ -184,7 +184,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return String.valueOf(percent);
         }
         
-        // ========== ТОП ИГРОКОВ (ВСЕГДА возвращает данные, fallback только если нет игроков) ==========
+        // ========== ТОП ИГРОКОВ ==========
         
         if (mainParam.toLowerCase().startsWith("top_")) {
             String[] parts = mainParam.split("_");
@@ -193,20 +193,26 @@ public class PlaceholderHook extends PlaceholderExpansion {
                     String numPart = parts[1].replaceAll("[^0-9]", "");
                     int topNumber = Integer.parseInt(numPart);
                     
+                    boolean wantName = mainParam.toLowerCase().contains("name");
+                    boolean wantScore = mainParam.toLowerCase().contains("score");
+                    boolean hasFallback = mainParam.toLowerCase().endsWith("_fallbackmsg");
+                    
                     List<TopEntry> topPlayers = statsManager.getTopPlayers(topNumber);
                     
                     if (topPlayers.size() >= topNumber) {
                         TopEntry entry = topPlayers.get(topNumber - 1);
-                        if (mainParam.toLowerCase().contains("name")) {
+                        if (wantName) {
                             return entry.getName();
                         }
-                        if (mainParam.toLowerCase().contains("score")) {
+                        if (wantScore) {
                             return String.valueOf(entry.getScore());
                         }
                         return entry.getName() + ": " + entry.getScore();
                     } else {
-                        // Нет игрока на этом месте - возвращаем fallback
-                        return fallbackToUse;
+                        if (hasFallback) {
+                            return fallbackToUse;
+                        }
+                        return "";
                     }
                 } catch (NumberFormatException ignored) {}
             }
@@ -302,7 +308,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         placeholders.add("is_active");
         placeholders.add("active_text");
         
-        // Прогресс (только число)
+        // Прогресс
         placeholders.add("progress");
         placeholders.add("progress_0");
         
@@ -311,6 +317,9 @@ public class PlaceholderHook extends PlaceholderExpansion {
             placeholders.add("top_" + i);
             placeholders.add("top_" + i + "_name");
             placeholders.add("top_" + i + "_score");
+            placeholders.add("top_" + i + "_fallbackMsg");
+            placeholders.add("top_" + i + "_name_fallbackMsg");
+            placeholders.add("top_" + i + "_score_fallbackMsg");
             placeholders.add("top_" + i + "_Нет игроков");
         }
         
