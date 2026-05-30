@@ -32,23 +32,29 @@ public class BossBarManager {
         int segments = plugin.getConfig().getInt("bossbar.segments", 12);
         float progress = 0f;
         
+        BossBar.Overlay overlay;
+        switch (segments) {
+            case 6 -> overlay = BossBar.Overlay.NOTCHED_6;
+            case 10 -> overlay = BossBar.Overlay.NOTCHED_10;
+            case 12 -> overlay = BossBar.Overlay.NOTCHED_12;
+            case 20 -> overlay = BossBar.Overlay.NOTCHED_20;
+            default -> overlay = BossBar.Overlay.PROGRESS;
+        }
+        
         bossBar = BossBar.bossBar(
                 Component.text(""),
                 progress,
                 color,
-                BossBar.Overlay.NOTCHED_20
+                overlay
         );
         
-        switch (segments) {
-            case 6 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_6).build();
-            case 10 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_10).build();
-            case 12 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_12).build();
-            case 20 -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.NOTCHED_20).build();
-            default -> bossBar = bossBar.toBuilder().overlay(BossBar.Overlay.PROGRESS).build();
-        }
-        
         for (Player player : Bukkit.getOnlinePlayers()) {
-            BossBar playerBar = bossBar;
+            BossBar playerBar = BossBar.bossBar(
+                    Component.text(""),
+                    progress,
+                    color,
+                    overlay
+            );
             playerBossBars.put(player.getUniqueId(), playerBar);
             plugin.getAdventure().player(player).showBossBar(playerBar);
         }
@@ -69,21 +75,17 @@ public class BossBarManager {
             }
         }
         
-        if (bossBar != null) {
-            bossBar = null;
-        }
+        bossBar = null;
     }
     
     public void updateProgress(float progress) {
-        if (bossBar == null) return;
+        float clampedProgress = Math.min(1f, Math.max(0f, progress));
         for (BossBar bar : playerBossBars.values()) {
-            bar.progress(Math.min(1f, Math.max(0f, progress)));
+            bar.progress(clampedProgress);
         }
     }
     
     public void updateTitle(String timeFormatted) {
-        if (bossBar == null) return;
-        
         String textTemplate = plugin.getConfig().getString("bossbar.text", "Судная ночь закончится через %time%");
         String finalText = textTemplate.replace("%time%", timeFormatted);
         
