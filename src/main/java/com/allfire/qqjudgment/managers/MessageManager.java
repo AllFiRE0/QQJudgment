@@ -1,6 +1,7 @@
 package com.allfire.qqjudgment.managers;
 
 import com.allfire.qqjudgment.QQJudgment;
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -56,8 +57,14 @@ public class MessageManager {
     }
     
     private void sendFormattedMessage(CommandSender sender, String message) {
+        // Обработка PlaceholderAPI для игроков
+        String parsedMessage = message;
+        if (sender instanceof Player player && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            parsedMessage = PlaceholderAPI.setPlaceholders(player, message);
+        }
+        
         // Actionbar
-        Matcher actionbarMatcher = actionbarPattern.matcher(message);
+        Matcher actionbarMatcher = actionbarPattern.matcher(parsedMessage);
         if (actionbarMatcher.matches()) {
             String durationStr = actionbarMatcher.group(1);
             String content = actionbarMatcher.group(2);
@@ -73,7 +80,7 @@ public class MessageManager {
         }
         
         // Title
-        Matcher titleMatcher = titlePattern.matcher(message);
+        Matcher titleMatcher = titlePattern.matcher(parsedMessage);
         if (titleMatcher.matches()) {
             String fadeIn = titleMatcher.group(1);
             String stay = titleMatcher.group(2);
@@ -95,7 +102,7 @@ public class MessageManager {
         }
         
         // Обычное сообщение
-        sender.sendMessage(parseMessage(message));
+        sender.sendMessage(parseMessage(parsedMessage));
     }
     
     public Component parseMessage(String message) {
@@ -152,7 +159,6 @@ public class MessageManager {
     }
     
     private String convertCMIGradients(String message) {
-        // {#FFFFFF>}text{#FFFFFF<}
         Pattern gradientPattern = Pattern.compile("\\{([#>]?[0-9a-fA-F]{6}[<>]?)\\}(.*?)\\{([#>]?[0-9a-fA-F]{6}[<>]?)\\}");
         Matcher matcher = gradientPattern.matcher(message);
         
