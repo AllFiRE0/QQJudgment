@@ -33,7 +33,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // Обработка papi команды
         if (args[0].equalsIgnoreCase("papi")) {
             if (!sender.hasPermission("qqjudgment.placeholder.parse")) {
                 plugin.getMessageManager().sendMessage(sender, "no-permission", false);
@@ -56,7 +55,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             
-            // Собираем текст
             StringBuilder textBuilder = new StringBuilder();
             for (int i = 1; i < args.length; i++) {
                 textBuilder.append(args[i]).append(" ");
@@ -69,7 +67,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // Основная логика команды
         if (args.length < 2) {
             sendHelp(sender);
             return true;
