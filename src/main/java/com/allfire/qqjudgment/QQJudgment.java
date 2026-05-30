@@ -26,10 +26,8 @@ public final class QQJudgment extends JavaPlugin {
         instance = this;
         adventure = BukkitAudiences.create(this);
         
-        // Сохранение конфига
         saveDefaultConfig();
         
-        // Инициализация хуков
         worldGuardHook = new WorldGuardHook();
         if (!worldGuardHook.setup()) {
             getLogger().log(Level.SEVERE, "WorldGuard не найден! Плагин отключается.");
@@ -37,13 +35,11 @@ public final class QQJudgment extends JavaPlugin {
             return;
         }
         
-        // Инициализация менеджеров
         messageManager = new MessageManager(this);
         statsManager = new StatsManager(this);
         judgmentManager = new JudgmentManager(this);
         bossBarManager = new BossBarManager(this);
         
-        // Регистрация PlaceholderAPI
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderHook = new PlaceholderHook(this);
             placeholderHook.register();
@@ -52,10 +48,7 @@ public final class QQJudgment extends JavaPlugin {
             getLogger().warning("PlaceholderAPI не найден! Заполнители не будут работать.");
         }
         
-        // Регистрация команд
         getCommand("qqjudgment").setExecutor(new JudgmentCommand(this));
-        
-        // Регистрация слушателей
         registerListeners();
         
         getLogger().info("QQJudgment успешно загружен! Автор: AllF1RE");
@@ -63,17 +56,11 @@ public final class QQJudgment extends JavaPlugin {
     
     private void registerListeners() {
         try {
-            Class.forName("com.allfire.qqjudgment.listeners.PVPListener")
-                    .getConstructor(QQJudgment.class)
-                    .newInstance(this);
-            Class.forName("com.allfire.qqjudgment.listeners.PlayerActionListener")
-                    .getConstructor(QQJudgment.class)
-                    .newInstance(this);
+            new com.allfire.qqjudgment.listeners.PVPListener(this);
+            new com.allfire.qqjudgment.listeners.PlayerActionListener(this);
             
             if (getConfig().getBoolean("mob-spawning.enabled", false)) {
-                Class.forName("com.allfire.qqjudgment.listeners.MobSpawnListener")
-                        .getConstructor(QQJudgment.class)
-                        .newInstance(this);
+                new com.allfire.qqjudgment.listeners.MobSpawnListener(this);
             }
         } catch (Exception e) {
             getLogger().log(Level.WARNING, "Не удалось зарегистрировать слушателей", e);
