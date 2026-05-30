@@ -21,11 +21,17 @@ public class MobSpawnListener implements Listener {
     private final JudgmentManager judgmentManager;
     private final Map<UUID, Long> lastSpawnTime = new HashMap<>();
     private BukkitRunnable spawnTask;
+    private boolean debug;
     
     public MobSpawnListener(QQJudgment plugin) {
         this.plugin = plugin;
         this.judgmentManager = plugin.getJudgmentManager();
+        this.debug = plugin.getConfig().getBoolean("debug", false);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        
+        if (debug) {
+            plugin.getLogger().info("[MobSpawn] Debug режим ВКЛЮЧЕН");
+        }
         
         // Запускаем периодическую проверку для всех игроков
         startGlobalSpawnTask();
@@ -37,11 +43,21 @@ public class MobSpawnListener implements Listener {
         spawnTask = new BukkitRunnable() {
             @Override
             public void run() {
-                if (!judgmentManager.isJudgmentActive()) return;
-                if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) return;
+                if (!judgmentManager.isJudgmentActive()) {
+                    if (debug) plugin.getLogger().info("[MobSpawn] СН не активна, спавн пропущен");
+                    return;
+                }
+                if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
+                    if (debug) plugin.getLogger().info("[MobSpawn] Спавн мобов выключен в конфиге");
+                    return;
+                }
                 
+                int spawned = 0;
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
-                    if (player.hasPermission("qqjudgment.bypass.mobspawn")) continue;
+                    if (player.hasPermission("qqjudgment.bypass.mobspawn")) {
+                        if (debug) plugin.getLogger().info("[MobSpawn] Игрок " + player.getName() + " имеет bypass, пропускаем");
+                        continue;
+                    }
                     
                     long lastSpawn = lastSpawnTime.getOrDefault(player.getUniqueId(), 0L);
                     long currentTime = System.currentTimeMillis();
@@ -50,13 +66,21 @@ public class MobSpawnListener implements Listener {
                     if (currentTime - lastSpawn >= delayMillis) {
                         lastSpawnTime.put(player.getUniqueId(), currentTime);
                         spawnMobsAroundPlayer(player);
+                        spawned++;
                     }
+                }
+                
+                if (debug && spawned > 0) {
+                    plugin.getLogger().info("[MobSpawn] Заспавнены мобы для " + spawned + " игроков");
                 }
             }
         };
         
         // Запускаем каждые 20 тиков (1 секунда)
         spawnTask.runTaskTimer(plugin, 0L, 20L);
+        if (debug) {
+            plugin.getLogger().info("[MobSpawn] Глобальный таск запущен, интервал: " + delayTicks + " тиков");
+        }
     }
     
     @EventHandler
@@ -75,6 +99,9 @@ public class MobSpawnListener implements Listener {
         if (currentTime - lastSpawn >= delayMillis) {
             lastSpawnTime.put(player.getUniqueId(), currentTime);
             spawnMobsAroundPlayer(player);
+            if (debug) {
+                plugin.getLogger().info("[MobSpawn] Спавн от движения игрока " + player.getName());
+            }
         }
     }
     
@@ -83,7 +110,10 @@ public class MobSpawnListener implements Listener {
         Location center = player.getLocation();
         World world = center.getWorld();
         
-        if (world == null) return;
+        if (world == null) {
+            if (debug) plugin.getLogger().warning("[MobSpawn] Мир не найден для игрока " + player.getName());
+            return;
+        }
         
         // Получаем мобов из конфига
         Map<String, Integer> mobs = new HashMap<>();
@@ -97,11 +127,15 @@ public class MobSpawnListener implements Listener {
         }
         
         if (mobs.isEmpty()) {
-            plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге! Добавьте мобов в секцию mob-spawning.mobs");
+            if (debug) plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге! Добавьте мобов в секцию mob-spawning.mobs");
             return;
         }
         
-        plugin.getLogger().info("[MobSpawn] Спавним мобов для игрока " + player.getName());
+        if (debug) {
+            plugin.getLogger().info("[MobSpawn] Спавним мобов для игрока " + player.getName() + " (радиус: " + radius + ")");
+        }
+        
+        int totalSpawned = 0;
         
         for (Map.Entry<String, Integer> entry : mobs.entrySet()) {
             String mobName = entry.getKey();
@@ -109,32 +143,50 @@ public class MobSpawnListener implements Listener {
             
             for (int i = 0; i < count; i++) {
                 double angle = Math.random() * 2 * Math.PI;
-                double distance = 2 + Math.random() * (radius - 2); // Не спавним слишком близко
+                double distance = 2 + Math.random() * (radius - 2);
                 double x = center.getX() + Math.cos(angle) * distance;
                 double z = center.getZ() + Math.sin(angle) * distance;
-                double y = center.getY(); // На том же уровне, что и игрок
+                double y = center.getY();
                 
                 Location spawnLoc = new Location(world, x, y, z);
                 
                 // Ищем подходящий блок для спавна
+                boolean foundSpot = false;
                 for (int offset = -2; offset <= 2; offset++) {
                     Location checkLoc = spawnLoc.clone().add(0, offset, 0);
                     if (checkLoc.getBlock().getType().isSolid() && 
                         checkLoc.clone().add(0, 1, 0).getBlock().isEmpty() &&
                         checkLoc.clone().add(0, 2, 0).getBlock().isEmpty()) {
                         spawnLoc = checkLoc.clone().add(0, 1, 0);
+                        foundSpot = true;
                         break;
                     }
+                }
+                
+                if (!foundSpot) {
+                    if (debug) plugin.getLogger().warning("[MobSpawn] Не найдено место для спавна " + mobName);
+                    continue;
                 }
                 
                 try {
                     EntityType type = EntityType.valueOf(mobName.toUpperCase());
                     world.spawnEntity(spawnLoc, type);
-                    plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName + " в " + spawnLoc.getBlockX() + "," + spawnLoc.getBlockY() + "," + spawnLoc.getBlockZ());
+                    totalSpawned++;
+                    if (debug) {
+                        plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName + " в " + 
+                            spawnLoc.getBlockX() + "," + spawnLoc.getBlockY() + "," + spawnLoc.getBlockZ());
+                    }
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("[MobSpawn] Неизвестный тип моба: " + mobName + ". Доступные типы: ZOMBIE, SKELETON, SPIDER, CREEPER и т.д.");
+                    if (debug) {
+                        plugin.getLogger().warning("[MobSpawn] Неизвестный тип моба: " + mobName + 
+                            ". Доступные: ZOMBIE, SKELETON, SPIDER, CREEPER, HUSK, DROWNED и т.д.");
+                    }
                 }
             }
+        }
+        
+        if (debug && totalSpawned > 0) {
+            plugin.getLogger().info("[MobSpawn] Всего заспавнено мобов: " + totalSpawned + " для " + player.getName());
         }
     }
     
@@ -142,6 +194,7 @@ public class MobSpawnListener implements Listener {
         if (spawnTask != null) {
             spawnTask.cancel();
             spawnTask = null;
+            if (debug) plugin.getLogger().info("[MobSpawn] Глобальный таск остановлен");
         }
     }
 }
