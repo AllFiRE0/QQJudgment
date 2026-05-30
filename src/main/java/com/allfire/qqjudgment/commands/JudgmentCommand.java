@@ -45,6 +45,16 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
+        if (args[0].equalsIgnoreCase("hidebossbar")) {
+            if (!sender.hasPermission("qqjudgment.stop")) {
+                plugin.getMessageManager().sendMessage(sender, "no-permission", false);
+                return true;
+            }
+            plugin.getBossBarManager().hideBossBarFromAll();
+            sender.sendMessage("§aБоссбар скрыт!");
+            return true;
+        }
+        
         if (args[0].equalsIgnoreCase("papi")) {
             if (!sender.hasPermission("qqjudgment.placeholder.parse")) {
                 plugin.getMessageManager().sendMessage(sender, "no-permission", false);
@@ -115,16 +125,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
                 
                 judgmentManager.stopJudgment(silent);
                 
-            } else if (args[1].equalsIgnoreCase("hidebossbar")) {
-                if (!sender.hasPermission("qqjudgment.stop")) {
-                    plugin.getMessageManager().sendMessage(sender, "no-permission", silent);
-                    return true;
-                }
-                
-                plugin.getBossBarManager().hideBossBarFromAll();
-                sender.sendMessage("§aБоссбар скрыт!");
-                return true;
-                
             } else {
                 sendHelp(sender);
             }
@@ -134,6 +134,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
         }
         
         return true;
+    }
     
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
@@ -156,11 +157,13 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
                 completions.addAll(getPlaceholderExamples());
             } else if (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("rl")) {
                 // Нет подсказок для reload
+            } else if (args[0].equalsIgnoreCase("hidebossbar")) {
+                // Нет подсказок для hidebossbar
             } else {
                 if (sender.hasPermission("qqjudgment.start")) completions.add("start");
                 if (sender.hasPermission("qqjudgment.stop")) completions.add("stop");
             }
-        } else if (args.length == 3 && !args[0].equalsIgnoreCase("papi") && !args[0].equalsIgnoreCase("reload")) {
+        } else if (args.length == 3 && !args[0].equalsIgnoreCase("papi") && !args[0].equalsIgnoreCase("reload") && !args[0].equalsIgnoreCase("hidebossbar")) {
             completions.add("-s");
         } else if (args.length >= 2 && args[0].equalsIgnoreCase("papi")) {
             completions.addAll(getPlaceholderCompletions(args[args.length - 1]));
@@ -174,6 +177,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§e/qqjudgment <секунд> start [-s] §7- Запустить судную ночь");
         sender.sendMessage("§e/qqjudgment <секунд> stop [-s] §7- Остановить судную ночь");
         sender.sendMessage("§e/qqjudgment reload §7- Перезагрузить конфиг");
+        sender.sendMessage("§e/qqjudgment hidebossbar §7- Скрыть боссбар");
         sender.sendMessage("§e/qqjudgment papi <текст> §7- Проверить заполнители");
         sender.sendMessage("");
         sender.sendMessage("§7Примеры заполнителей:");
