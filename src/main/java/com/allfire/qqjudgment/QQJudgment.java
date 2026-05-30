@@ -4,6 +4,7 @@ import com.allfire.qqjudgment.commands.JudgmentCommand;
 import com.allfire.qqjudgment.hooks.PlaceholderHook;
 import com.allfire.qqjudgment.hooks.WorldGuardHook;
 import com.allfire.qqjudgment.managers.*;
+import com.allfire.qqjudgment.listeners.*;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -20,6 +21,8 @@ public final class QQJudgment extends JavaPlugin {
     private BossBarManager bossBarManager;
     private StatsManager statsManager;
     private MessageManager messageManager;
+    private MobSpawnListener mobSpawnListener;
+    private boolean debug;
     
     @Override
     public void onEnable() {
@@ -28,6 +31,13 @@ public final class QQJudgment extends JavaPlugin {
         
         saveDefaultConfig();
         
+        // Загружаем debug режим из конфига
+        debug = getConfig().getBoolean("debug", false);
+        
+        if (debug) {
+            getLogger().info("§e[QQJudgment] Debug режим ВКЛЮЧЕН!");
+        }
+        
         worldGuardHook = new WorldGuardHook();
         if (!worldGuardHook.setup()) {
             getLogger().log(Level.SEVERE, "WorldGuard не найден! Плагин отключается.");
@@ -35,10 +45,18 @@ public final class QQJudgment extends JavaPlugin {
             return;
         }
         
+        if (debug) {
+            getLogger().info("[QQJudgment] WorldGuard найден и подключен");
+        }
+        
         messageManager = new MessageManager(this);
         statsManager = new StatsManager(this);
         judgmentManager = new JudgmentManager(this);
         bossBarManager = new BossBarManager(this);
+        
+        if (debug) {
+            getLogger().info("[QQJudgment] Все менеджеры инициализированы");
+        }
         
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderHook = new PlaceholderHook(this);
@@ -56,12 +74,19 @@ public final class QQJudgment extends JavaPlugin {
     
     private void registerListeners() {
         try {
-            new com.allfire.qqjudgment.listeners.PVPListener(this);
-            new com.allfire.qqjudgment.listeners.PlayerActionListener(this);
+            new PVPListener(this);
+            if (debug) getLogger().info("[QQJudgment] PVPListener зарегистрирован");
             
-            if (getConfig().getBoolean("mob-spawning.enabled", false)) {
-                new com.allfire.qqjudgment.listeners.MobSpawnListener(this);
+            new PlayerActionListener(this);
+            if (debug) getLogger().info("[QQJudgment] PlayerActionListener зарегистрирован");
+            
+            // Всегда создаем слушатель, он сам проверит enabled в своем коде
+            mobSpawnListener = new MobSpawnListener(this);
+            if (debug) {
+                getLogger().info("[QQJudgment] MobSpawnListener зарегистрирован (enabled: " + 
+                    getConfig().getBoolean("mob-spawning.enabled", false) + ")");
             }
+            
         } catch (Exception e) {
             getLogger().log(Level.WARNING, "Не удалось зарегистрировать слушателей", e);
         }
@@ -69,11 +94,18 @@ public final class QQJudgment extends JavaPlugin {
     
     @Override
     public void onDisable() {
+        if (debug) {
+            getLogger().info("[QQJudgment] Выключение плагина...");
+        }
+        
         if (judgmentManager != null && judgmentManager.isJudgmentActive()) {
             judgmentManager.stopJudgment(false);
         }
         if (placeholderHook != null) {
             placeholderHook.unregister();
+        }
+        if (mobSpawnListener != null) {
+            mobSpawnListener.stop();
         }
         if (adventure != null) {
             adventure.close();
@@ -111,5 +143,9 @@ public final class QQJudgment extends JavaPlugin {
     
     public PlaceholderHook getPlaceholderHook() {
         return placeholderHook;
+    }
+    
+    public boolean isDebug() {
+        return debug;
     }
 }
