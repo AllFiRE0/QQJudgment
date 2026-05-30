@@ -15,6 +15,7 @@ public class JudgmentManager {
     private final QQJudgment plugin;
     private boolean judgmentActive = false;
     private int remainingSeconds = 0;
+    private int totalSeconds = 0;
     private BukkitTask judgmentTask;
     private BukkitTask countdownTask;
     private long judgmentStartTime;
@@ -31,6 +32,7 @@ public class JudgmentManager {
         
         judgmentActive = true;
         remainingSeconds = seconds;
+        totalSeconds = seconds;
         judgmentStartTime = System.currentTimeMillis();
         
         plugin.getStatsManager().startTracking();
@@ -112,10 +114,12 @@ public class JudgmentManager {
                 remainingSeconds--;
                 
                 if (remainingSeconds <= 0) {
+                    plugin.getBossBarManager().updateProgress(1.0f);
+                    plugin.getBossBarManager().updateTitle(plugin.getStatsManager().formatTime(0));
                     this.cancel();
                 } else {
-                    plugin.getBossBarManager().updateProgress((float) getProgress());
-                    plugin.getBossBarManager().updateTitle(getFormattedTime());
+                    plugin.getBossBarManager().updateProgress((float) remainingSeconds / totalSeconds);
+                    plugin.getBossBarManager().updateTitle(plugin.getStatsManager().formatTime(remainingSeconds));
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
@@ -133,18 +137,6 @@ public class JudgmentManager {
         if (godRestricted && !player.hasPermission("qqjudgment.bypass.god")) {
             player.setInvulnerable(false);
         }
-    }
-    
-    private double getProgress() {
-        if (remainingSeconds <= 0) return 1.0;
-        long totalSeconds = (System.currentTimeMillis() - judgmentStartTime) / 1000 + remainingSeconds;
-        if (totalSeconds <= 0) return 1.0;
-        return (double) remainingSeconds / totalSeconds;
-    }
-    
-    private String getFormattedTime() {
-        long totalSeconds = (System.currentTimeMillis() - judgmentStartTime) / 1000 + remainingSeconds;
-        return plugin.getStatsManager().formatTime((int) totalSeconds);
     }
     
     public boolean isJudgmentActive() {
