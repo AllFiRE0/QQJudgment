@@ -2,6 +2,7 @@ package com.allfire.qqjudgment.managers;
 
 import com.allfire.qqjudgment.QQJudgment;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -18,12 +19,15 @@ public class JudgmentManager {
     private int totalSeconds = 0;
     private BukkitTask judgmentTask;
     private BukkitTask countdownTask;
+    private boolean debug;
     
     private final Map<UUID, Boolean> previousFlyState = new HashMap<>();
     private final Map<UUID, Boolean> previousInvincibleState = new HashMap<>();
+    private final Map<UUID, GameMode> previousGameMode = new HashMap<>();
     
     public JudgmentManager(QQJudgment plugin) {
         this.plugin = plugin;
+        this.debug = plugin.getConfig().getBoolean("debug", false);
     }
     
     public void startJudgment(int seconds, boolean silent) {
@@ -38,13 +42,16 @@ public class JudgmentManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             previousFlyState.put(player.getUniqueId(), player.getAllowFlight());
             previousInvincibleState.put(player.getUniqueId(), player.isInvulnerable());
+            previousGameMode.put(player.getUniqueId(), player.getGameMode());
             applyRestrictions(player);
         }
         
-        // Показываем стартовый боссбар
+        if (debug) {
+            plugin.getLogger().info("[Judgment] Судная ночь началась на " + seconds + " секунд");
+        }
+        
         plugin.getBossBarManager().showStartBossBar();
         
-        // Запускаем основной боссбар с задержкой
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -68,7 +75,7 @@ public class JudgmentManager {
             plugin.getMessageManager().broadcastMessage("judgment-started", placeholders);
         }
         
-        if (plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
+        if (plugin.getConfig().getBoolean("mob-spawning.enabled", false) && !silent) {
             plugin.getMessageManager().broadcastMessage("mob-spawn-start", null);
         }
     }
@@ -90,18 +97,27 @@ public class JudgmentManager {
             countdownTask = null;
         }
         
-        // Показываем финальный боссбар
         plugin.getBossBarManager().showEndBossBar();
         
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (previousFlyState.containsKey(player.getUniqueId())) {
-                player.setAllowFlight(previousFlyState.get(player.getUniqueId()));
-                previousFlyState.remove(player.getUniqueId());
+            UUID uuid = player.getUniqueId();
+            
+            if (previousFlyState.containsKey(uuid)) {
+                player.setAllowFlight(previousFlyState.get(uuid));
+                previousFlyState.remove(uuid);
             }
-            if (previousInvincibleState.containsKey(player.getUniqueId())) {
-                player.setInvulnerable(previousInvincibleState.get(player.getUniqueId()));
-                previousInvincibleState.remove(player.getUniqueId());
+            if (previousInvincibleState.containsKey(uuid)) {
+                player.setInvulnerable(previousInvincibleState.get(uuid));
+                previousInvincibleState.remove(uuid);
             }
+            if (previousGameMode.containsKey(uuid)) {
+                // Восстанавливаем гейм мод, если он был изменен
+                previousGameMode.remove(uuid);
+            }
+        }
+        
+        if (debug) {
+            plugin.getLogger().info("[Judgment] Судная ночь закончилась");
         }
         
         if (!silent) {
@@ -135,6 +151,10 @@ public class JudgmentManager {
         boolean flyRestricted = plugin.getConfig().getBoolean("restrictions.fly", false);
         boolean godRestricted = plugin.getConfig().getBoolean("restrictions.god", false);
         
+        // Только для выживания и приключения
+        GameMode gm = player.getGameMode();
+        if (gm != GameMode.SURVIVAL && gm != GameMode.ADVENTURE) return;
+        
         if (flyRestricted && !player.hasPermission("qqjudgment.bypass.fly")) {
             player.setAllowFlight(false);
             player.setFlying(false);
@@ -154,7 +174,7 @@ public class JudgmentManager {
     }
     
     public String getTimeRemainingFormatted() {
-        return plugin.getStatsManager().formatTime(remainingSeconds);
+        return plugin.getStatsManager().formatTime(Math.max(0, remainingSeconds));
     }
     
     public String getFallbackMsg() {
