@@ -1,9 +1,11 @@
 package com.allfire.qqjudgment;
 
 import com.allfire.qqjudgment.commands.JudgmentCommand;
+import com.allfire.qqjudgment.hooks.PlaceholderHook;
 import com.allfire.qqjudgment.hooks.WorldGuardHook;
 import com.allfire.qqjudgment.managers.*;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -13,6 +15,7 @@ public final class QQJudgment extends JavaPlugin {
     private static QQJudgment instance;
     private BukkitAudiences adventure;
     private WorldGuardHook worldGuardHook;
+    private PlaceholderHook placeholderHook;
     private JudgmentManager judgmentManager;
     private BossBarManager bossBarManager;
     private StatsManager statsManager;
@@ -39,6 +42,15 @@ public final class QQJudgment extends JavaPlugin {
         statsManager = new StatsManager(this);
         judgmentManager = new JudgmentManager(this);
         bossBarManager = new BossBarManager(this);
+        
+        // Регистрация PlaceholderAPI
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            placeholderHook = new PlaceholderHook(this);
+            placeholderHook.register();
+            getLogger().info("PlaceholderAPI поддержка включена!");
+        } else {
+            getLogger().warning("PlaceholderAPI не найден! Заполнители не будут работать.");
+        }
         
         // Регистрация команд
         getCommand("qqjudgment").setExecutor(new JudgmentCommand(this));
@@ -73,6 +85,9 @@ public final class QQJudgment extends JavaPlugin {
         if (judgmentManager != null && judgmentManager.isJudgmentActive()) {
             judgmentManager.stopJudgment(false);
         }
+        if (placeholderHook != null) {
+            placeholderHook.unregister();
+        }
         if (adventure != null) {
             adventure.close();
         }
@@ -105,5 +120,9 @@ public final class QQJudgment extends JavaPlugin {
     
     public MessageManager getMessageManager() {
         return messageManager;
+    }
+    
+    public PlaceholderHook getPlaceholderHook() {
+        return placeholderHook;
     }
 }
