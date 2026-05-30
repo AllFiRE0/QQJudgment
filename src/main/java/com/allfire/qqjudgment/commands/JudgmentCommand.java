@@ -33,21 +33,18 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // Команда перезагрузки
         if (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("rl")) {
             if (!sender.hasPermission("qqjudgment.reload")) {
                 plugin.getMessageManager().sendMessage(sender, "no-permission", false);
                 return true;
             }
             
-            // Перезагружаем конфиг
             plugin.reloadConfig();
             sender.sendMessage(plugin.getMessageManager().parseMessage("&a✅ Плагин QQJudgment перезагружен!"));
             sender.sendMessage(plugin.getMessageManager().parseMessage("&7Новые настройки применены."));
             return true;
         }
         
-        // Команда проверки papi
         if (args[0].equalsIgnoreCase("papi")) {
             if (!sender.hasPermission("qqjudgment.placeholder.parse")) {
                 plugin.getMessageManager().sendMessage(sender, "no-permission", false);
@@ -82,7 +79,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // Основная логика команды
         if (args.length < 2) {
             sendHelp(sender);
             return true;
@@ -171,29 +167,20 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§e/qqjudgment papi <текст> §7- Проверить заполнители");
         sender.sendMessage("");
         sender.sendMessage("§7Примеры заполнителей:");
-        sender.sendMessage("§7%qqjudgment_time_end_fallbackMsg% §8- Время до конца");
+        sender.sendMessage("§7%qqjudgment_time_end% §8- Время до конца (05:30:45)");
+        sender.sendMessage("§7%qqjudgment_hours_padded% §8- Часы с нулем (05)");
+        sender.sendMessage("§7%qqjudgment_minutes_padded% §8- Минуты с нулем (30)");
+        sender.sendMessage("§7%qqjudgment_seconds_padded% §8- Секунды с нулем (45)");
         sender.sendMessage("§7%qqjudgment_kills_players% §8- Ваши убийства игроков");
-        sender.sendMessage("§7%qqjudgment_top_1_fallbackMsg% §8- Топ игрок");
+        sender.sendMessage("§7%qqjudgment_top_1_name% §8- Имя топ игрока");
     }
     
     private List<String> getPlaceholderExamples() {
         return List.of(
-            "%qqjudgment_end_fallbackMsg%",
-            "%qqjudgment_time_end_fallbackMsg%",
-            "%qqjudgment_is_active%",
-            "%qqjudgment_kills_players%",
-            "%qqjudgment_kills_mobs%",
-            "%qqjudgment_deaths%"
-        );
-    }
-    
-    private List<String> getPlaceholderCompletions(String current) {
-        List<String> placeholders = List.of(
-            "%qqjudgment_end_fallbackMsg%",
-            "%qqjudgment_time_end_fallbackMsg%",
+            "%qqjudgment_end%",
             "%qqjudgment_time_end%",
-            "%qqjudgment_seconds_end%",
             "%qqjudgment_is_active%",
+            "%qqjudgment_active_text%",
             "%qqjudgment_hours%",
             "%qqjudgment_hours_padded%",
             "%qqjudgment_minutes%",
@@ -204,20 +191,69 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             "%qqjudgment_total_seconds%",
             "%qqjudgment_progress%",
             "%qqjudgment_progress_bar%",
-            "%qqjudgment_top_1_fallbackMsg%",
-            "%qqjudgment_top_2_fallbackMsg%",
-            "%qqjudgment_top_3_fallbackMsg%",
-            "%qqjudgment_top_4_fallbackMsg%",
-            "%qqjudgment_top_5_fallbackMsg%",
-            "%qqjudgment_death_fallbackMsg%",
-            "%qqjudgment_deaths%",
-            "%qqjudgment_kills_players_fallbackMsg%",
             "%qqjudgment_kills_players%",
-            "%qqjudgment_kills_mobs_fallbackMsg%",
             "%qqjudgment_kills_mobs%",
-            "%qqjudgment_total_kills_fallbackMsg%",
-            "%qqjudgment_total_kills%"
+            "%qqjudgment_deaths%",
+            "%qqjudgment_total_kills%",
+            "%qqjudgment_top_1%",
+            "%qqjudgment_top_1_name%",
+            "%qqjudgment_top_1_score%"
         );
+    }
+    
+    private List<String> getPlaceholderCompletions(String current) {
+        List<String> placeholders = new ArrayList<>();
+        
+        // Основные
+        placeholders.add("%qqjudgment_end%");
+        placeholders.add("%qqjudgment_end_Мой текст%");
+        placeholders.add("%qqjudgment_time_end%");
+        placeholders.add("%qqjudgment_time_end_Не активно%");
+        placeholders.add("%qqjudgment_seconds_end%");
+        
+        // Компоненты времени
+        placeholders.add("%qqjudgment_hours%");
+        placeholders.add("%qqjudgment_hours_0%");
+        placeholders.add("%qqjudgment_hours_padded%");
+        placeholders.add("%qqjudgment_hours_padded_00%");
+        placeholders.add("%qqjudgment_minutes%");
+        placeholders.add("%qqjudgment_minutes_0%");
+        placeholders.add("%qqjudgment_minutes_padded%");
+        placeholders.add("%qqjudgment_minutes_padded_00%");
+        placeholders.add("%qqjudgment_seconds%");
+        placeholders.add("%qqjudgment_seconds_0%");
+        placeholders.add("%qqjudgment_seconds_padded%");
+        placeholders.add("%qqjudgment_seconds_padded_00%");
+        placeholders.add("%qqjudgment_total_minutes%");
+        placeholders.add("%qqjudgment_total_seconds%");
+        
+        // Статус
+        placeholders.add("%qqjudgment_is_active%");
+        placeholders.add("%qqjudgment_active_text%");
+        
+        // Прогресс
+        placeholders.add("%qqjudgment_progress%");
+        placeholders.add("%qqjudgment_progress_0%%");
+        placeholders.add("%qqjudgment_progress_bar%");
+        placeholders.add("%qqjudgment_progress_bar_░░░░░░░░░░%");
+        
+        // Топ игроков (1-10)
+        for (int i = 1; i <= 10; i++) {
+            placeholders.add("%qqjudgment_top_" + i + "%");
+            placeholders.add("%qqjudgment_top_" + i + "_name%");
+            placeholders.add("%qqjudgment_top_" + i + "_score%");
+            placeholders.add("%qqjudgment_top_" + i + "_Нет игроков%");
+        }
+        
+        // Статистика
+        placeholders.add("%qqjudgment_deaths%");
+        placeholders.add("%qqjudgment_deaths_Нет смертей%");
+        placeholders.add("%qqjudgment_kills_players%");
+        placeholders.add("%qqjudgment_kills_players_0%");
+        placeholders.add("%qqjudgment_kills_mobs%");
+        placeholders.add("%qqjudgment_kills_mobs_Никого%");
+        placeholders.add("%qqjudgment_total_kills%");
+        placeholders.add("%qqjudgment_total_kills_---%");
         
         if (current == null || current.isEmpty()) return placeholders;
         
