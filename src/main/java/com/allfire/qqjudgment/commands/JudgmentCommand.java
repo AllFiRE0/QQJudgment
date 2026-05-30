@@ -149,6 +149,7 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
             completions.add("reload");
             completions.add("rl");
             completions.add("papi");
+            completions.add("hidebossbar");
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("papi")) {
                 completions.add("<текст с %заполнителями%>");
