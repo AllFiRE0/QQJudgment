@@ -18,7 +18,6 @@ public class JudgmentManager {
     private int totalSeconds = 0;
     private BukkitTask judgmentTask;
     private BukkitTask countdownTask;
-    private long judgmentStartTime;
     
     private final Map<UUID, Boolean> previousFlyState = new HashMap<>();
     private final Map<UUID, Boolean> previousInvincibleState = new HashMap<>();
@@ -33,7 +32,6 @@ public class JudgmentManager {
         judgmentActive = true;
         remainingSeconds = seconds;
         totalSeconds = seconds;
-        judgmentStartTime = System.currentTimeMillis();
         
         plugin.getStatsManager().startTracking();
         
@@ -43,11 +41,19 @@ public class JudgmentManager {
             applyRestrictions(player);
         }
         
-        if (plugin.getConfig().getBoolean("bossbar.enabled", true)) {
-            plugin.getBossBarManager().showBossBarToAll();
-        }
+        // Показываем стартовый боссбар
+        plugin.getBossBarManager().showStartBossBar();
         
-        startCountdown();
+        // Запускаем основной боссбар с задержкой
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (judgmentActive) {
+                    plugin.getBossBarManager().showProgressBossBar();
+                    startCountdown();
+                }
+            }
+        }.runTaskLater(plugin, plugin.getConfig().getInt("bossbar.start-delay", 3) * 20L);
         
         judgmentTask = new BukkitRunnable() {
             @Override
@@ -84,7 +90,8 @@ public class JudgmentManager {
             countdownTask = null;
         }
         
-        plugin.getBossBarManager().hideBossBarFromAll();
+        // Показываем финальный боссбар
+        plugin.getBossBarManager().showEndBossBar();
         
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (previousFlyState.containsKey(player.getUniqueId())) {
@@ -115,7 +122,6 @@ public class JudgmentManager {
                 
                 if (remainingSeconds <= 0) {
                     plugin.getBossBarManager().updateProgress(1.0f);
-                    plugin.getBossBarManager().updateTitle(plugin.getStatsManager().formatTime(0));
                     this.cancel();
                 } else {
                     plugin.getBossBarManager().updateProgress((float) remainingSeconds / totalSeconds);
