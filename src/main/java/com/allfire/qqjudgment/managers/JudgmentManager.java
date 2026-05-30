@@ -186,6 +186,10 @@ public class JudgmentManager {
         return remainingSeconds;
     }
     
+    public int getTotalSeconds() {
+        return totalSeconds;
+    }
+    
     public String getTimeRemainingFormatted() {
         return plugin.getStatsManager().formatTime(Math.max(0, remainingSeconds));
     }
