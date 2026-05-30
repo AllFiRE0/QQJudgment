@@ -30,7 +30,6 @@ public class BossBarManager {
     public void showStartBossBar() {
         if (!plugin.getConfig().getBoolean("bossbar.enabled", true)) return;
         
-        // Сначала скрываем старый боссбар если есть
         hideBossBarFromAll();
         
         String colorStr = plugin.getConfig().getString("bossbar.color", "RED");
@@ -53,7 +52,6 @@ public class BossBarManager {
             plugin.getLogger().info("[BossBar] Показан стартовый боссбар для " + playerBossBars.size() + " игроков");
         }
         
-        // Автоматически скрываем через delay секунд
         if (hideTask != null) hideTask.cancel();
         hideTask = new BukkitRunnable() {
             @Override
@@ -66,10 +64,11 @@ public class BossBarManager {
     }
     
     public void showProgressBossBar() {
+        showProgressBossBar(null);
+    }
+    
+    public void showProgressBossBar(Player targetPlayer) {
         if (!plugin.getConfig().getBoolean("bossbar.enabled", true)) return;
-        
-        // Скрываем старый боссбар перед показом нового
-        hideBossBarFromAll();
         
         String colorStr = plugin.getConfig().getString("bossbar.color", "RED");
         BossBar.Color color = getColor(colorStr);
@@ -77,14 +76,24 @@ public class BossBarManager {
         
         BossBar.Overlay overlay = getOverlay(segments);
         
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        if (targetPlayer == null) {
+            // Для всех игроков
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                BossBar playerBar = BossBar.bossBar(Component.text(""), 0f, color, overlay);
+                playerBossBars.put(player.getUniqueId(), playerBar);
+                plugin.getAdventure().player(player).showBossBar(playerBar);
+            }
+            if (debug) {
+                plugin.getLogger().info("[BossBar] Показан прогресс-боссбар для " + playerBossBars.size() + " игроков");
+            }
+        } else {
+            // Только для одного игрока
             BossBar playerBar = BossBar.bossBar(Component.text(""), 0f, color, overlay);
-            playerBossBars.put(player.getUniqueId(), playerBar);
-            plugin.getAdventure().player(player).showBossBar(playerBar);
-        }
-        
-        if (debug) {
-            plugin.getLogger().info("[BossBar] Показан прогресс-боссбар для " + playerBossBars.size() + " игроков");
+            playerBossBars.put(targetPlayer.getUniqueId(), playerBar);
+            plugin.getAdventure().player(targetPlayer).showBossBar(playerBar);
+            if (debug) {
+                plugin.getLogger().info("[BossBar] Показан прогресс-боссбар для " + targetPlayer.getName());
+            }
         }
     }
     
@@ -101,7 +110,6 @@ public class BossBarManager {
         
         BossBar.Overlay overlay = getOverlay(segments);
         
-        // Обновляем существующие боссбары или создаем новые
         for (Player player : Bukkit.getOnlinePlayers()) {
             BossBar bar = playerBossBars.get(player.getUniqueId());
             if (bar != null) {
@@ -118,13 +126,7 @@ public class BossBarManager {
             plugin.getLogger().info("[BossBar] Показан финальный боссбар для " + playerBossBars.size() + " игроков");
         }
         
-        // Отменяем предыдущий таймер скрытия если есть
-        if (hideTask != null) {
-            hideTask.cancel();
-            hideTask = null;
-        }
-        
-        // Запланировать скрытие через delay секунд
+        if (hideTask != null) hideTask.cancel();
         hideTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -136,7 +138,6 @@ public class BossBarManager {
     }
     
     public void hideBossBarFromAll() {
-        // Отменяем все запланированные задачи
         if (hideTask != null) {
             hideTask.cancel();
             hideTask = null;
@@ -146,7 +147,6 @@ public class BossBarManager {
             showTask = null;
         }
         
-        // Скрываем боссбар у всех игроков
         for (Player player : Bukkit.getOnlinePlayers()) {
             BossBar bar = playerBossBars.remove(player.getUniqueId());
             if (bar != null) {
@@ -159,23 +159,48 @@ public class BossBarManager {
         }
     }
     
+    public void hideBossBarForPlayer(Player player) {
+        BossBar bar = playerBossBars.remove(player.getUniqueId());
+        if (bar != null) {
+            plugin.getAdventure().player(player).hideBossBar(bar);
+            if (debug) {
+                plugin.getLogger().info("[BossBar] Скрыт боссбар для " + player.getName());
+            }
+        }
+    }
+    
     public void updateProgress(float progress) {
-        if (playerBossBars.isEmpty()) return;
         float clampedProgress = Math.min(1f, Math.max(0f, progress));
         for (BossBar bar : playerBossBars.values()) {
             bar.progress(clampedProgress);
         }
     }
     
+    public void updateProgressForPlayer(Player player, float progress) {
+        float clampedProgress = Math.min(1f, Math.max(0f, progress));
+        BossBar bar = playerBossBars.get(player.getUniqueId());
+        if (bar != null) {
+            bar.progress(clampedProgress);
+        }
+    }
+    
     public void updateTitle(String timeFormatted) {
-        if (playerBossBars.isEmpty()) return;
-        
         String textTemplate = plugin.getConfig().getString("bossbar.progress-text", "<gradient:#FF0000:#FFAA00>Судная ночь закончится через %time%</gradient>");
         String finalText = textTemplate.replace("%time%", timeFormatted);
-        
         Component component = plugin.getMessageManager().parseMessage(finalText);
         
         for (BossBar bar : playerBossBars.values()) {
+            bar.name(component);
+        }
+    }
+    
+    public void updateTitleForPlayer(Player player, String timeFormatted) {
+        String textTemplate = plugin.getConfig().getString("bossbar.progress-text", "<gradient:#FF0000:#FFAA00>Судная ночь закончится через %time%</gradient>");
+        String finalText = textTemplate.replace("%time%", timeFormatted);
+        Component component = plugin.getMessageManager().parseMessage(finalText);
+        
+        BossBar bar = playerBossBars.get(player.getUniqueId());
+        if (bar != null) {
             bar.name(component);
         }
     }
