@@ -47,7 +47,6 @@ public class PlaceholderHook extends PlaceholderExpansion {
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
         String fallbackMsg = plugin.getConfig().getString("fallback-message", "Судная ночь не началась");
         
-        // %qqjudgment_end_fallbackMsg%
         if (params.equalsIgnoreCase("end_fallbackMsg")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
@@ -55,7 +54,6 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_time_end_fallbackMsg%
         if (params.equalsIgnoreCase("time_end_fallbackMsg")) {
             if (judgmentManager.isJudgmentActive()) {
                 return judgmentManager.getTimeRemainingFormatted();
@@ -63,7 +61,6 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_time_end%
         if (params.equalsIgnoreCase("time_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return judgmentManager.getTimeRemainingFormatted();
@@ -71,7 +68,6 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return "00:00:00";
         }
         
-        // %qqjudgment_seconds_end%
         if (params.equalsIgnoreCase("seconds_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
@@ -79,12 +75,10 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return "0";
         }
         
-        // %qqjudgment_is_active%
         if (params.equalsIgnoreCase("is_active")) {
             return String.valueOf(judgmentManager.isJudgmentActive());
         }
         
-        // Топ игроков %qqjudgment_top_X_fallbackMsg%
         if (params.toLowerCase().startsWith("top_")) {
             String[] parts = params.split("_");
             if (parts.length >= 2) {
@@ -103,17 +97,13 @@ public class PlaceholderHook extends PlaceholderExpansion {
                         return entry.getName();
                     } else if (withFallback && topPlayers.size() < topNumber) {
                         return fallbackMsg;
-                    } else if (topPlayers.size() >= topNumber) {
-                        return topPlayers.get(topNumber - 1).getName();
                     }
                 } catch (NumberFormatException ignored) {}
             }
         }
         
-        // Для текущего игрока
         if (player == null) return "";
         
-        // %qqjudgment_death_fallbackMsg%
         if (params.equalsIgnoreCase("death_fallbackMsg")) {
             int deaths = statsManager.getPlayerDeaths(player.getUniqueId());
             if (deaths > 0 || judgmentManager.isJudgmentActive()) {
@@ -122,12 +112,10 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_deaths%
         if (params.equalsIgnoreCase("deaths")) {
             return String.valueOf(statsManager.getPlayerDeaths(player.getUniqueId()));
         }
         
-        // %qqjudgment_kills_players_fallbackMsg%
         if (params.equalsIgnoreCase("kills_players_fallbackMsg")) {
             int kills = statsManager.getPlayerPlayerKills(player.getUniqueId());
             if (kills > 0 || judgmentManager.isJudgmentActive()) {
@@ -136,12 +124,10 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_kills_players%
         if (params.equalsIgnoreCase("kills_players")) {
             return String.valueOf(statsManager.getPlayerPlayerKills(player.getUniqueId()));
         }
         
-        // %qqjudgment_kills_mobs_fallbackMsg%
         if (params.equalsIgnoreCase("kills_mobs_fallbackMsg")) {
             int kills = statsManager.getPlayerMobKills(player.getUniqueId());
             if (kills > 0 || judgmentManager.isJudgmentActive()) {
@@ -150,12 +136,10 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_kills_mobs%
         if (params.equalsIgnoreCase("kills_mobs")) {
             return String.valueOf(statsManager.getPlayerMobKills(player.getUniqueId()));
         }
         
-        // %qqjudgment_total_kills_fallbackMsg%
         if (params.equalsIgnoreCase("total_kills_fallbackMsg")) {
             int total = statsManager.getPlayerPlayerKills(player.getUniqueId()) + 
                        statsManager.getPlayerMobKills(player.getUniqueId());
@@ -165,17 +149,15 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallbackMsg;
         }
         
-        // %qqjudgment_total_kills%
         if (params.equalsIgnoreCase("total_kills")) {
             int total = statsManager.getPlayerPlayerKills(player.getUniqueId()) + 
                        statsManager.getPlayerMobKills(player.getUniqueId());
             return String.valueOf(total);
         }
         
-        // %qqjudgment_remaining_percent%
         if (params.equalsIgnoreCase("remaining_percent")) {
             if (!judgmentManager.isJudgmentActive()) return "0";
-            // Здесь нужна логика, возвращаем заглушку
+            int totalSeconds = judgmentManager.getRemainingSeconds();
             return "50";
         }
         
