@@ -29,13 +29,10 @@ public class PVPListener implements Listener {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
         
-        // Если судная ночь не активна - пропускаем (WorldGuard сам обработает)
         if (!judgmentManager.isJudgmentActive()) return;
         
-        // Проверка на bypass
         if (attacker.hasPermission("qqjudgment.bypass.pvp")) return;
         
-        // Проверка черного списка регионов
         List<String> blacklisted = plugin.getConfig().getStringList("blacklisted-regions");
         
         if (worldGuard.isInBlacklistedRegion(victim.getLocation(), blacklisted) ||
@@ -44,11 +41,9 @@ public class PVPListener implements Listener {
             return;
         }
         
-        // Разрешаем PVP во время судной ночи даже если WorldGuard запрещает
         event.setCancelled(false);
         
-        // Отправляем уведомление если нужно
-        if (Math.random() < 0.1) { // 10% шанс, чтобы не спамить
+        if (Math.random() < 0.1) {
             plugin.getMessageManager().sendMessage(attacker, "pvp-enabled-during-judgment", true);
         }
     }
