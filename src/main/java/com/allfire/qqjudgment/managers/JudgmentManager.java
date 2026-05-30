@@ -19,7 +19,6 @@ public class JudgmentManager {
     private BukkitTask countdownTask;
     private long judgmentStartTime;
     
-    // Временные данные для ограничений
     private final Map<UUID, Boolean> previousFlyState = new HashMap<>();
     private final Map<UUID, Boolean> previousInvincibleState = new HashMap<>();
     
@@ -34,24 +33,20 @@ public class JudgmentManager {
         remainingSeconds = seconds;
         judgmentStartTime = System.currentTimeMillis();
         
-        // Сохраняем состояния игроков
+        plugin.getStatsManager().startTracking();
+        
         for (Player player : Bukkit.getOnlinePlayers()) {
             previousFlyState.put(player.getUniqueId(), player.getAllowFlight());
             previousInvincibleState.put(player.getUniqueId(), player.isInvulnerable());
-            
-            // Применяем ограничения
             applyRestrictions(player);
         }
         
-        // Запускаем BossBar
         if (plugin.getConfig().getBoolean("bossbar.enabled", true)) {
             plugin.getBossBarManager().showBossBarToAll();
         }
         
-        // Запускаем таймер обновления
         startCountdown();
         
-        // Запускаем таймер окончания
         judgmentTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -59,14 +54,12 @@ public class JudgmentManager {
             }
         }.runTaskLater(plugin, seconds * 20L);
         
-        // Сообщение о начале
         if (!silent) {
             Map<String, String> placeholders = new HashMap<>();
             placeholders.put("seconds", String.valueOf(seconds));
             plugin.getMessageManager().broadcastMessage("judgment-started", placeholders);
         }
         
-        // Запускаем спавн мобов
         if (plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
             plugin.getMessageManager().broadcastMessage("mob-spawn-start", null);
         }
@@ -76,6 +69,8 @@ public class JudgmentManager {
         if (!judgmentActive) return;
         
         judgmentActive = false;
+        
+        plugin.getStatsManager().stopTracking();
         
         if (judgmentTask != null) {
             judgmentTask.cancel();
@@ -87,10 +82,8 @@ public class JudgmentManager {
             countdownTask = null;
         }
         
-        // Останавливаем BossBar
         plugin.getBossBarManager().hideBossBarFromAll();
         
-        // Восстанавливаем состояния игроков
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (previousFlyState.containsKey(player.getUniqueId())) {
                 player.setAllowFlight(previousFlyState.get(player.getUniqueId()));
@@ -102,7 +95,6 @@ public class JudgmentManager {
             }
         }
         
-        // Сообщение об окончании
         if (!silent) {
             plugin.getMessageManager().broadcastMessage("judgment-ended", null);
         }
@@ -122,7 +114,6 @@ public class JudgmentManager {
                 if (remainingSeconds <= 0) {
                     this.cancel();
                 } else {
-                    // Обновляем BossBar
                     plugin.getBossBarManager().updateProgress(getProgress());
                     plugin.getBossBarManager().updateTitle(getFormattedTime());
                 }
@@ -131,8 +122,6 @@ public class JudgmentManager {
     }
     
     private void applyRestrictions(Player player) {
-        boolean sleepRestricted = plugin.getConfig().getBoolean("restrictions.sleep", false);
-        boolean elytraRestricted = plugin.getConfig().getBoolean("restrictions.elytraFlight", false);
         boolean flyRestricted = plugin.getConfig().getBoolean("restrictions.fly", false);
         boolean godRestricted = plugin.getConfig().getBoolean("restrictions.god", false);
         
@@ -150,7 +139,7 @@ public class JudgmentManager {
         if (remainingSeconds <= 0) return 1.0;
         long totalSeconds = (System.currentTimeMillis() - judgmentStartTime) / 1000 + remainingSeconds;
         if (totalSeconds <= 0) return 1.0;
-        return 1.0 - ((double) remainingSeconds / totalSeconds);
+        return (double) remainingSeconds / totalSeconds;
     }
     
     private String getFormattedTime() {
