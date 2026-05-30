@@ -1,3 +1,5 @@
+debug: true
+
 # Черный список регионов WorldGuard где PVP запрещено даже во время судной ночи
 blacklisted-regions:
   - "Spawn"
