@@ -115,6 +115,16 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
                 
                 judgmentManager.stopJudgment(silent);
                 
+            } else if (args[1].equalsIgnoreCase("hidebossbar")) {
+                if (!sender.hasPermission("qqjudgment.stop")) {
+                    plugin.getMessageManager().sendMessage(sender, "no-permission", silent);
+                    return true;
+                }
+                
+                plugin.getBossBarManager().hideBossBarFromAll();
+                sender.sendMessage("§aБоссбар скрыт!");
+                return true;
+                
             } else {
                 sendHelp(sender);
             }
@@ -124,7 +134,6 @@ public class JudgmentCommand implements CommandExecutor, TabCompleter {
         }
         
         return true;
-    }
     
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
