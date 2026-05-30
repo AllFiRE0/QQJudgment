@@ -22,20 +22,18 @@ public class MobSpawnListener implements Listener {
     private final JudgmentManager judgmentManager;
     private final Map<UUID, Long> lastSpawnTime = new HashMap<>();
     private BukkitRunnable spawnTask;
-    private boolean debug;
     private boolean isRunning = false;
     
     public MobSpawnListener(QQJudgment plugin) {
         this.plugin = plugin;
         this.judgmentManager = plugin.getJudgmentManager();
-        this.debug = plugin.getConfig().getBoolean("debug", false);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         
-        if (debug) {
-            plugin.getLogger().info("[MobSpawn] Debug режим ВКЛЮЧЕН");
-        }
-        
         startCheckerTask();
+    }
+    
+    private boolean isDebug() {
+        return plugin.getConfig().getBoolean("debug", false);
     }
     
     private void startCheckerTask() {
@@ -43,7 +41,7 @@ public class MobSpawnListener implements Listener {
             @Override
             public void run() {
                 if (!judgmentManager.isJudgmentActive()) {
-                    if (isRunning && debug) {
+                    if (isRunning && isDebug()) {
                         plugin.getLogger().info("[MobSpawn] СН закончилась, останавливаем спавн мобов");
                         isRunning = false;
                     }
@@ -51,14 +49,14 @@ public class MobSpawnListener implements Listener {
                 }
                 
                 if (!plugin.getConfig().getBoolean("mob-spawning.enabled", false)) {
-                    if (isRunning && debug) {
+                    if (isRunning && isDebug()) {
                         plugin.getLogger().info("[MobSpawn] Спавн мобов выключен в конфиге");
                         isRunning = false;
                     }
                     return;
                 }
                 
-                if (!isRunning && debug) {
+                if (!isRunning && isDebug()) {
                     plugin.getLogger().info("[MobSpawn] СН активна, начинаем спавн мобов");
                     isRunning = true;
                 }
@@ -67,20 +65,16 @@ public class MobSpawnListener implements Listener {
                 long delayMillis = delayTicks * 50L;
                 
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
-                    // ===== ВСЕ ПРОВЕРКИ ЗДЕСЬ, БЕЗ ЛОГОВ =====
-                    
-                    // 1. Только выживание и приключение
+                    // Только выживание и приключение
                     GameMode gm = player.getGameMode();
                     if (gm != GameMode.SURVIVAL && gm != GameMode.ADVENTURE) {
                         continue;
                     }
                     
-                    // 2. Проверка bypass права
                     if (player.hasPermission("qqjudgment.bypass.mobspawn")) {
                         continue;
                     }
                     
-                    // 3. Время суток: ночь ИЛИ под землей
                     World world = player.getWorld();
                     long time = world.getTime();
                     boolean isNight = time >= 13000 && time <= 23000;
@@ -90,7 +84,6 @@ public class MobSpawnListener implements Listener {
                         continue;
                     }
                     
-                    // 4. Задержка между спавнами
                     long lastSpawn = lastSpawnTime.getOrDefault(player.getUniqueId(), 0L);
                     long currentTime = System.currentTimeMillis();
                     
@@ -103,7 +96,7 @@ public class MobSpawnListener implements Listener {
         };
         
         spawnTask.runTaskTimer(plugin, 0L, 20L);
-        if (debug) {
+        if (isDebug()) {
             plugin.getLogger().info("[MobSpawn] Чекер-таск запущен");
         }
     }
@@ -115,7 +108,6 @@ public class MobSpawnListener implements Listener {
         
         Player player = event.getPlayer();
         
-        // Те же проверки, что и выше
         GameMode gm = player.getGameMode();
         if (gm != GameMode.SURVIVAL && gm != GameMode.ADVENTURE) return;
         if (player.hasPermission("qqjudgment.bypass.mobspawn")) return;
@@ -155,11 +147,11 @@ public class MobSpawnListener implements Listener {
         }
         
         if (mobs.isEmpty()) {
-            if (debug) plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге!");
+            if (isDebug()) plugin.getLogger().warning("[MobSpawn] Нет мобов в конфиге!");
             return;
         }
         
-        if (debug) {
+        if (isDebug()) {
             plugin.getLogger().info("[MobSpawn] Спавн мобов для " + player.getName());
         }
         
@@ -200,12 +192,12 @@ public class MobSpawnListener implements Listener {
                             try {
                                 world.spawnEntity(finalLoc, type);
                                 totalSpawned++;
-                                if (debug) {
+                                if (isDebug()) {
                                     plugin.getLogger().info("[MobSpawn] Заспавнен " + mobName);
                                 }
                                 break;
                             } catch (Exception e) {
-                                if (debug) plugin.getLogger().warning("[MobSpawn] Ошибка: " + e.getMessage());
+                                if (isDebug()) plugin.getLogger().warning("[MobSpawn] Ошибка: " + e.getMessage());
                             }
                         }
                     }
@@ -213,7 +205,7 @@ public class MobSpawnListener implements Listener {
             }
         }
         
-        if (debug && totalSpawned > 0) {
+        if (isDebug() && totalSpawned > 0) {
             plugin.getLogger().info("[MobSpawn] Заспавнено мобов: " + totalSpawned);
         }
     }
@@ -222,7 +214,7 @@ public class MobSpawnListener implements Listener {
         if (spawnTask != null) {
             spawnTask.cancel();
             spawnTask = null;
-            if (debug) plugin.getLogger().info("[MobSpawn] Чекер-таск остановлен");
+            if (isDebug()) plugin.getLogger().info("[MobSpawn] Чекер-таск остановлен");
         }
     }
 }
