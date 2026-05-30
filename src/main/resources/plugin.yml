@@ -17,6 +17,9 @@ permissions:
   qqjudgment.use:
     description: Разрешает использование команды
     default: true
+  qqjudgment.reload:
+    description: Разрешает перезагрузку конфига
+    default: op
   qqjudgment.start:
     description: Разрешает запуск судной ночи
     default: op
