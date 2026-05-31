@@ -4,6 +4,7 @@ import com.allfire.qqjudgment.QQJudgment;
 import com.allfire.qqjudgment.hooks.WorldGuardHook;
 import com.allfire.qqjudgment.managers.JudgmentManager;
 import org.bukkit.entity.Player;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
