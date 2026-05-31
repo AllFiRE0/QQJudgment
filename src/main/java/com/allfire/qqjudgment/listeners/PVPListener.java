@@ -1,8 +1,8 @@
 package com.allfire.qqjudgment.listeners;
 
 import com.allfire.qqjudgment.QQJudgment;
-import com.allfire.qqjudgment.managers.JudgmentManager;
 import com.allfire.qqjudgment.hooks.WorldGuardHook;
+import com.allfire.qqjudgment.managers.JudgmentManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -26,36 +26,40 @@ public class PVPListener implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
     
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)  // Изменено с LOWEST на HIGHEST
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
         
-        // Если судная ночь НЕ активна - пропускаем, пусть WorldGuard сам решает
+        // Если судная ночь не активна - не вмешиваемся
         if (!judgmentManager.isJudgmentActive()) return;
         
-        // Проверка на bypass - если есть право, тоже пропускаем (пусть WG решает)
+        // Если есть право bypass - не вмешиваемся
         if (attacker.hasPermission("qqjudgment.bypass.pvp")) return;
         
-        // Проверка черного списка регионов (здесь PVP запрещен даже во время СН)
+        // Проверка черного списка регионов
         List<String> blacklisted = plugin.getConfig().getStringList("blacklisted-regions");
         
         if (worldGuard.isInBlacklistedRegion(victim.getLocation(), blacklisted) ||
             worldGuard.isInBlacklistedRegion(attacker.getLocation(), blacklisted)) {
             if (debug) {
-                plugin.getLogger().info("[PVP] PVP запрещен в черном списке регионов");
+                plugin.getLogger().info("[PVP] Запрещено в черном списке: " + attacker.getName() + " -> " + victim.getName());
             }
             event.setCancelled(true);
             return;
         }
         
-        // ========== ГЛАВНОЕ: РАЗРЕШАЕМ PVP ВО ВРЕМЯ СУДНОЙ НОЧИ ==========
-        // Отменяем запрет WorldGuard, принудительно разрешаем PVP
+        // ПРИНУДИТЕЛЬНО РАЗРЕШАЕМ PVP
         event.setCancelled(false);
         
         if (debug) {
-            plugin.getLogger().info("[PVP] PVP разрешен во время Судной ночи: " + 
-                attacker.getName() + " -> " + victim.getName());
+            plugin.getLogger().info("[PVP] РАЗРЕШЕН во время СН: " + attacker.getName() + " -> " + victim.getName() + 
+                " (регион: " + getRegionName(victim.getLocation()) + ")");
         }
+    }
+    
+    private String getRegionName(Location loc) {
+        // Простой метод для получения имени региона (для дебага)
+        return "unknown";
     }
 }
