@@ -3,7 +3,6 @@ package com.allfire.qqjudgment.listeners;
 import com.allfire.qqjudgment.QQJudgment;
 import com.allfire.qqjudgment.managers.JudgmentManager;
 import com.allfire.qqjudgment.hooks.WorldGuardHook;
-import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,27 +31,31 @@ public class PVPListener implements Listener {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
         
-        // Если судная ночь не активна - пропускаем (WorldGuard сам обработает)
+        // Если судная ночь НЕ активна - пропускаем, пусть WorldGuard сам решает
         if (!judgmentManager.isJudgmentActive()) return;
         
-        // Проверка на bypass
+        // Проверка на bypass - если есть право, тоже пропускаем (пусть WG решает)
         if (attacker.hasPermission("qqjudgment.bypass.pvp")) return;
         
-        // Проверка черного списка регионов
+        // Проверка черного списка регионов (здесь PVP запрещен даже во время СН)
         List<String> blacklisted = plugin.getConfig().getStringList("blacklisted-regions");
         
         if (worldGuard.isInBlacklistedRegion(victim.getLocation(), blacklisted) ||
             worldGuard.isInBlacklistedRegion(attacker.getLocation(), blacklisted)) {
+            if (debug) {
+                plugin.getLogger().info("[PVP] PVP запрещен в черном списке регионов");
+            }
             event.setCancelled(true);
             return;
         }
         
-        // Разрешаем PVP
+        // ========== ГЛАВНОЕ: РАЗРЕШАЕМ PVP ВО ВРЕМЯ СУДНОЙ НОЧИ ==========
+        // Отменяем запрет WorldGuard, принудительно разрешаем PVP
         event.setCancelled(false);
         
-        // Редкое уведомление (только если нужно и не спамить)
-        if (Math.random() < 0.05 && debug) {
-            plugin.getMessageManager().sendMessage(attacker, "pvp-enabled-during-judgment", true);
+        if (debug) {
+            plugin.getLogger().info("[PVP] PVP разрешен во время Судной ночи: " + 
+                attacker.getName() + " -> " + victim.getName());
         }
     }
 }
