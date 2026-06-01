@@ -9,10 +9,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class PVPListener implements Listener {
     
@@ -20,7 +18,6 @@ public class PVPListener implements Listener {
     private final JudgmentManager judgmentManager;
     private final WorldGuardHook worldGuard;
     private boolean debug;
-    private final Pattern wgPvpMessagePattern = Pattern.compile("(?i).*(pvp|pvp is disabled|регион.*запрещен|can't.*fight).*");
     
     public PVPListener(QQJudgment plugin) {
         this.plugin = plugin;
@@ -30,7 +27,7 @@ public class PVPListener implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
     
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
@@ -38,47 +35,27 @@ public class PVPListener implements Listener {
         // Если судная ночь не активна - не вмешиваемся
         if (!judgmentManager.isJudgmentActive()) return;
         
-        // Если есть право bypass - не вмешиваемся
+        // Если есть право bypass - пропускаем (не мешаем)
         if (attacker.hasPermission("qqjudgment.bypass.pvp")) return;
         
         // Проверка черного списка регионов
         List<String> blacklisted = plugin.getConfig().getStringList("blacklisted-regions");
         
+        // Если в черном списке - ЗАПРЕЩАЕМ
         if (worldGuard.isInBlacklistedRegion(victim.getLocation(), blacklisted) ||
             worldGuard.isInBlacklistedRegion(attacker.getLocation(), blacklisted)) {
-            if (debug) {
-                plugin.getLogger().info("[PVP] Запрещено в черном списке: " + attacker.getName() + " -> " + victim.getName());
-            }
             event.setCancelled(true);
             return;
         }
         
-        // ПРИНУДИТЕЛЬНО РАЗРЕШАЕМ PVP
-        event.setCancelled(false);
+        // ВСЕМ ОСТАЛЬНЫМ - РАЗРЕШАЕМ (отменяем запрет WorldGuard)
+        // Важно: setCancelled(false) переопределяет запрет других плагинов
+        if (event.isCancelled()) {
+            event.setCancelled(false);
+        }
         
         if (debug) {
-            plugin.getLogger().info("[PVP] РАЗРЕШЕН во время СН: " + attacker.getName() + " -> " + victim.getName() + 
-                " (регион: " + getRegionName(victim.getLocation()) + ")");
+            plugin.getLogger().info("[PVP] РАЗРЕШЕН: " + attacker.getName() + " -> " + victim.getName());
         }
-    }
-    
-    // Перехватываем сообщения WorldGuard и отменяем их
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
-        // Если судная ночь не активна - не вмешиваемся
-        if (!judgmentManager.isJudgmentActive()) return;
-        
-        String message = event.getMessage().toLowerCase();
-        // Проверяем, является ли сообщение от WorldGuard о PVP
-        if (message.contains("pvp") && (message.contains("deny") || message.contains("disabled") || message.contains("запрещен"))) {
-            if (debug) {
-                plugin.getLogger().info("[PVP] Перехвачено сообщение WorldGuard: " + message);
-            }
-            event.setCancelled(true);
-        }
-    }
-    
-    private String getRegionName(Location loc) {
-        return "unknown";
     }
 }
