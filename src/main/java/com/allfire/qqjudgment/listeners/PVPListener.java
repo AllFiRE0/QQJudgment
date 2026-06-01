@@ -9,8 +9,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class PVPListener implements Listener {
     
@@ -18,6 +20,7 @@ public class PVPListener implements Listener {
     private final JudgmentManager judgmentManager;
     private final WorldGuardHook worldGuard;
     private boolean debug;
+    private final Pattern wgPvpMessagePattern = Pattern.compile("(?i).*(pvp|pvp is disabled|регион.*запрещен|can't.*fight).*");
     
     public PVPListener(QQJudgment plugin) {
         this.plugin = plugin;
@@ -27,7 +30,7 @@ public class PVPListener implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
     
-    @EventHandler(priority = EventPriority.HIGHEST)  // Изменено с LOWEST на HIGHEST
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
@@ -59,8 +62,23 @@ public class PVPListener implements Listener {
         }
     }
     
+    // Перехватываем сообщения WorldGuard и отменяем их
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+        // Если судная ночь не активна - не вмешиваемся
+        if (!judgmentManager.isJudgmentActive()) return;
+        
+        String message = event.getMessage().toLowerCase();
+        // Проверяем, является ли сообщение от WorldGuard о PVP
+        if (message.contains("pvp") && (message.contains("deny") || message.contains("disabled") || message.contains("запрещен"))) {
+            if (debug) {
+                plugin.getLogger().info("[PVP] Перехвачено сообщение WorldGuard: " + message);
+            }
+            event.setCancelled(true);
+        }
+    }
+    
     private String getRegionName(Location loc) {
-        // Простой метод для получения имени региона (для дебага)
         return "unknown";
     }
 }
