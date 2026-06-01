@@ -56,7 +56,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
     
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
-        if (player == null) return "";
+        if (player == null && !params.equals("is_active") && !params.equals("active_text")) return "";
         
         // ТОЧНО КАК В QQCMExpansion: split("_", 4)
         String[] parts = params.split("_", 4);
@@ -212,6 +212,8 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return fallback;
         }
         
+        if (player == null) return "";
+        
         // ========== СТАТИСТИКА ИГРОКА ==========
         if (mainParam.equalsIgnoreCase("deaths")) {
             String fallback = parts.length >= 2 ? parts[1] : "";
@@ -257,7 +259,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
     public @Nullable List<String> getPlaceholders() {
         List<String> placeholders = new ArrayList<>();
         
-        // Основные
+        // ========== ОСНОВНЫЕ ==========
         placeholders.add("%qqjudgment_end%");
         placeholders.add("%qqjudgment_end_Не активно%");
         placeholders.add("%qqjudgment_end_%");
@@ -268,7 +270,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         placeholders.add("%qqjudgment_seconds_end_0%");
         placeholders.add("%qqjudgment_seconds_end_%");
         
-        // Компоненты времени
+        // ========== КОМПОНЕНТЫ ВРЕМЕНИ ==========
         placeholders.add("%qqjudgment_hours%");
         placeholders.add("%qqjudgment_hours_0%");
         placeholders.add("%qqjudgment_hours_%");
@@ -297,19 +299,19 @@ public class PlaceholderHook extends PlaceholderExpansion {
         placeholders.add("%qqjudgment_total_seconds_0%");
         placeholders.add("%qqjudgment_total_seconds_%");
         
-        // Статус
+        // ========== СТАТУС ==========
         placeholders.add("%qqjudgment_is_active%");
         placeholders.add("%qqjudgment_is_active_Не активна%");
         placeholders.add("%qqjudgment_is_active_%");
         placeholders.add("%qqjudgment_active_text%");
         placeholders.add("%qqjudgment_active_text_Не активно%");
         
-        // Прогресс
+        // ========== ПРОГРЕСС ==========
         placeholders.add("%qqjudgment_progress%");
         placeholders.add("%qqjudgment_progress_0%%");
         placeholders.add("%qqjudgment_progress_%");
         
-        // Топ игроков 1-10
+        // ========== ТОП ИГРОКОВ 1-10 ==========
         for (int i = 1; i <= 10; i++) {
             placeholders.add("%qqjudgment_top_" + i + "%");
             placeholders.add("%qqjudgment_top_" + i + "_Нет игроков%");
@@ -322,7 +324,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             placeholders.add("%qqjudgment_top_" + i + "_score_%");
         }
         
-        // Статистика
+        // ========== СТАТИСТИКА ==========
         placeholders.add("%qqjudgment_deaths%");
         placeholders.add("%qqjudgment_deaths_0%");
         placeholders.add("%qqjudgment_deaths_Нет смертей%");
