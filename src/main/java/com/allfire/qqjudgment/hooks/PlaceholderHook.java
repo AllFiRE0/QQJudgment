@@ -20,7 +20,6 @@ public class PlaceholderHook extends PlaceholderExpansion {
     private final QQJudgment plugin;
     private final JudgmentManager judgmentManager;
     private final StatsManager statsManager;
-    private final Pattern fallbackPattern = Pattern.compile("^(.*?)_(.*)$");
     
     public PlaceholderHook(QQJudgment plugin) {
         this.plugin = plugin;
@@ -57,25 +56,33 @@ public class PlaceholderHook extends PlaceholderExpansion {
         return Duration.ofSeconds(getRemainingSeconds());
     }
     
+    private String getFallback(String params, String defaultValue) {
+        if (params == null || params.isEmpty()) return defaultValue;
+        // Если параметр начинается с _, берем то что после
+        if (params.startsWith("_")) {
+            String fallback = params.substring(1);
+            return fallback.isEmpty() ? "" : fallback;
+        }
+        return defaultValue;
+    }
+    
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
         String defaultFallback = plugin.getConfig().getString("fallback-message", "Судная ночь не началась");
         
+        // Разбираем параметр: main_часть и fallback
         String mainParam = params;
-        String customFallback = null;
+        String fallbackText = defaultFallback;
         
-        Matcher matcher = fallbackPattern.matcher(params);
-        if (matcher.matches()) {
-            String possibleMain = matcher.group(1);
-            String possibleFallback = matcher.group(2);
-            
+        int underscoreIndex = params.indexOf('_');
+        if (underscoreIndex > 0) {
+            String possibleMain = params.substring(0, underscoreIndex);
             if (isValidParam(possibleMain)) {
                 mainParam = possibleMain;
-                customFallback = possibleFallback;
+                String fallbackPart = params.substring(underscoreIndex + 1);
+                fallbackText = fallbackPart.isEmpty() ? "" : fallbackPart;
             }
         }
-        
-        String fallbackToUse = customFallback != null ? customFallback : defaultFallback;
         
         // ========== ОСНОВНЫЕ ЗАПОЛНИТЕЛИ ==========
         
@@ -83,21 +90,21 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("time_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return judgmentManager.getTimeRemainingFormatted();
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("seconds_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         // ========== КОМПОНЕНТЫ ВРЕМЕНИ ==========
@@ -106,56 +113,56 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toHours());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("hours_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toHours());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("minutes")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toMinutesPart());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("minutes_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toMinutesPart());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("seconds")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toSecondsPart());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("seconds_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toSecondsPart());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("total_minutes")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toMinutes());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("total_seconds")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         // ========== СТАТУС ==========
@@ -175,7 +182,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         if (mainParam.equalsIgnoreCase("progress")) {
             if (!judgmentManager.isJudgmentActive()) {
-                return fallbackToUse;
+                return fallbackText;
             }
             int totalSeconds = 3600;
             int remaining = judgmentManager.getRemainingSeconds();
@@ -208,11 +215,11 @@ public class PlaceholderHook extends PlaceholderExpansion {
                         }
                         return entry.getName() + ": " + entry.getScore();
                     } else {
-                        return fallbackToUse;
+                        return fallbackText;
                     }
                 } catch (NumberFormatException ignored) {}
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (player == null) return "";
@@ -224,32 +231,23 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (deaths > 0) {
                 return String.valueOf(deaths);
             }
-            return fallbackToUse;
+            return fallbackText;
         }
         
         if (mainParam.equalsIgnoreCase("kills_players")) {
             int kills = statsManager.getPlayerPlayerKills(player.getUniqueId());
-            if (kills > 0) {
-                return String.valueOf(kills);
-            }
-            return fallbackToUse;
+            return String.valueOf(kills);
         }
         
         if (mainParam.equalsIgnoreCase("kills_mobs")) {
             int kills = statsManager.getPlayerMobKills(player.getUniqueId());
-            if (kills > 0) {
-                return String.valueOf(kills);
-            }
-            return fallbackToUse;
+            return String.valueOf(kills);
         }
         
         if (mainParam.equalsIgnoreCase("total_kills")) {
             int total = statsManager.getPlayerPlayerKills(player.getUniqueId()) + 
                        statsManager.getPlayerMobKills(player.getUniqueId());
-            if (total > 0) {
-                return String.valueOf(total);
-            }
-            return fallbackToUse;
+            return String.valueOf(total);
         }
         
         return null;
@@ -274,7 +272,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         // Основные
         placeholders.add("end");
-        placeholders.add("end_Мой текст");
+        placeholders.add("end_Не активно");
         placeholders.add("time_end");
         placeholders.add("time_end_Не активно");
         placeholders.add("seconds_end");
@@ -316,19 +314,15 @@ public class PlaceholderHook extends PlaceholderExpansion {
             placeholders.add("top_" + i + "_score_0");
         }
         
-        // Статистика
+        // Статистика - ВСЕГДА возвращают число, fallback только если нет данных
         placeholders.add("deaths");
-        placeholders.add("deaths_Нет смертей");
-        placeholders.add("deaths_");
+        placeholders.add("deaths_0");
         placeholders.add("kills_players");
         placeholders.add("kills_players_0");
-        placeholders.add("kills_players_");
         placeholders.add("kills_mobs");
-        placeholders.add("kills_mobs_Никого");
-        placeholders.add("kills_mobs_");
+        placeholders.add("kills_mobs_0");
         placeholders.add("total_kills");
-        placeholders.add("total_kills_---");
-        placeholders.add("total_kills_");
+        placeholders.add("total_kills_0");
         
         return placeholders;
     }
