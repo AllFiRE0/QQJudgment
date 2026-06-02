@@ -58,7 +58,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
         if (params == null || params.isEmpty()) return "";
         
-        // БЛЯТЬ, ПРОСТАЯ ПРОВЕРКА: ЕСТЬ ЛИ _ В КОНЦЕ
+        // Определяем есть ли fallback (символ _ в параметре)
         boolean hasFallback = params.contains("_");
         String baseParam = params;
         String fallback = "";
@@ -74,21 +74,21 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallback;
+            return hasFallback ? fallback : "";
         }
         
         if (baseParam.equalsIgnoreCase("time_end") || baseParam.equalsIgnoreCase("time_end_fallbackMsg")) {
             if (judgmentManager.isJudgmentActive()) {
                 return judgmentManager.getTimeRemainingFormatted();
             }
-            return fallback;
+            return hasFallback ? fallback : "";
         }
         
         if (baseParam.equalsIgnoreCase("seconds_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         // ========== КОМПОНЕНТЫ ВРЕМЕНИ ==========
@@ -96,56 +96,56 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toHours());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("hours_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toHours());
             }
-            return fallback.isEmpty() ? "00" : fallback;
+            return hasFallback ? fallback : "00";
         }
         
         if (baseParam.equalsIgnoreCase("minutes")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toMinutesPart());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("minutes_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toMinutesPart());
             }
-            return fallback.isEmpty() ? "00" : fallback;
+            return hasFallback ? fallback : "00";
         }
         
         if (baseParam.equalsIgnoreCase("seconds")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toSecondsPart());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("seconds_padded")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.format("%02d", getDuration().toSecondsPart());
             }
-            return fallback.isEmpty() ? "00" : fallback;
+            return hasFallback ? fallback : "00";
         }
         
         if (baseParam.equalsIgnoreCase("total_minutes")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(getDuration().toMinutes());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("total_seconds")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
-            return fallback.isEmpty() ? "0" : fallback;
+            return hasFallback ? fallback : "0";
         }
         
         // ========== СТАТУС ==========
@@ -157,13 +157,13 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (judgmentManager.isJudgmentActive()) {
                 return "§aАктивна";
             }
-            return fallback.isEmpty() ? "§cНе активна" : fallback;
+            return hasFallback ? fallback : "§cНе активна";
         }
         
         // ========== ПРОГРЕСС ==========
         if (baseParam.equalsIgnoreCase("progress")) {
             if (!judgmentManager.isJudgmentActive()) {
-                return fallback.isEmpty() ? "0" : fallback;
+                return hasFallback ? fallback : "0";
             }
             int totalSeconds = 3600;
             int remaining = judgmentManager.getRemainingSeconds();
@@ -195,7 +195,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
                     }
                 } catch (NumberFormatException ignored) {}
             }
-            return fallback;
+            return hasFallback ? fallback : "";
         }
         
         if (player == null) return "";
@@ -206,7 +206,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (deaths > 0) {
                 return String.valueOf(deaths);
             }
-            return fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("kills_players") || baseParam.equalsIgnoreCase("kills_players_fallbackMsg")) {
@@ -214,7 +214,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (kills > 0) {
                 return String.valueOf(kills);
             }
-            return fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("kills_mobs") || baseParam.equalsIgnoreCase("kills_mobs_fallbackMsg")) {
@@ -222,7 +222,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (kills > 0) {
                 return String.valueOf(kills);
             }
-            return fallback;
+            return hasFallback ? fallback : "0";
         }
         
         if (baseParam.equalsIgnoreCase("total_kills") || baseParam.equalsIgnoreCase("total_kills_fallbackMsg")) {
@@ -231,7 +231,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             if (total > 0) {
                 return String.valueOf(total);
             }
-            return fallback;
+            return hasFallback ? fallback : "0";
         }
         
         return "";
