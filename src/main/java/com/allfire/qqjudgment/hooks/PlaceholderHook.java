@@ -219,9 +219,9 @@ public class PlaceholderHook extends PlaceholderExpansion {
         
         if (baseParam.equalsIgnoreCase("active_text")) {
             if (judgmentManager.isJudgmentActive()) {
-                return "§aАктивна";
+                return "yes";
             }
-            return hasFallback ? fallback : "§cНе активна";
+            return hasFallback ? fallback : "no";
         }
         
         // ========== ПРОГРЕСС ==========
