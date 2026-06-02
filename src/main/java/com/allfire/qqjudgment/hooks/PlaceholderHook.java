@@ -19,6 +19,15 @@ public class PlaceholderHook extends PlaceholderExpansion {
     private final JudgmentManager judgmentManager;
     private final StatsManager statsManager;
     
+    // Список всех основных параметров (без fallback)
+    private final String[] MAIN_PARAMS = {
+        "end", "time_end", "seconds_end",
+        "hours", "hours_padded", "minutes", "minutes_padded", "seconds", "seconds_padded",
+        "total_minutes", "total_seconds",
+        "is_active", "active_text", "progress",
+        "deaths", "kills_players", "kills_mobs", "total_kills"
+    };
+    
     public PlaceholderHook(QQJudgment plugin) {
         this.plugin = plugin;
         this.judgmentManager = plugin.getJudgmentManager();
@@ -54,30 +63,69 @@ public class PlaceholderHook extends PlaceholderExpansion {
         return Duration.ofSeconds(getRemainingSeconds());
     }
     
+    /**
+     * Разбирает параметр на основную часть и fallback
+     * @param params входной параметр (например "kills_mobs_Никого")
+     * @return массив [основная_часть, fallback, hasFallback]
+     */
+    private ParseResult parseParams(String params) {
+        // Сначала проверяем top_ параметры (у них своя структура)
+        if (params.startsWith("top_")) {
+            String[] parts = params.split("_");
+            if (parts.length >= 2) {
+                // top_1, top_1_name, top_1_score - без fallback
+                if (parts.length == 2) {
+                    return new ParseResult(params, "", false);
+                }
+                // top_1_name, top_1_score - без fallback
+                if (parts.length == 3 && (parts[2].equals("name") || parts[2].equals("score"))) {
+                    return new ParseResult(params, "", false);
+                }
+                // top_1_Текст - с fallback
+                if (parts.length >= 3) {
+                    String base = parts[0] + "_" + parts[1];
+                    String fallback = params.substring(base.length() + 1);
+                    return new ParseResult(base, fallback, true);
+                }
+            }
+            return new ParseResult(params, "", false);
+        }
+        
+        // Проверяем основные параметры
+        for (String main : MAIN_PARAMS) {
+            if (params.equals(main)) {
+                // Точное совпадение - без fallback
+                return new ParseResult(main, "", false);
+            }
+            if (params.startsWith(main + "_")) {
+                // Есть fallback после _
+                String fallback = params.substring(main.length() + 1);
+                return new ParseResult(main, fallback, true);
+            }
+        }
+        
+        // Неизвестный параметр
+        return new ParseResult(params, "", false);
+    }
+    
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
         if (params == null || params.isEmpty()) return "";
         
-        // Определяем есть ли fallback (символ _ в параметре)
-        boolean hasFallback = params.contains("_");
-        String baseParam = params;
-        String fallback = "";
-        
-        if (hasFallback) {
-            int lastUnderscore = params.lastIndexOf('_');
-            baseParam = params.substring(0, lastUnderscore);
-            fallback = params.substring(lastUnderscore + 1);
-        }
+        ParseResult parsed = parseParams(params);
+        String baseParam = parsed.baseParam;
+        String fallback = parsed.fallback;
+        boolean hasFallback = parsed.hasFallback;
         
         // ========== ОСНОВНЫЕ ==========
-        if (baseParam.equalsIgnoreCase("end") || baseParam.equalsIgnoreCase("end_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return String.valueOf(judgmentManager.getRemainingSeconds());
             }
             return hasFallback ? fallback : "";
         }
         
-        if (baseParam.equalsIgnoreCase("time_end") || baseParam.equalsIgnoreCase("time_end_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("time_end")) {
             if (judgmentManager.isJudgmentActive()) {
                 return judgmentManager.getTimeRemainingFormatted();
             }
@@ -201,7 +249,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
         if (player == null) return "";
         
         // ========== СТАТИСТИКА ИГРОКА ==========
-        if (baseParam.equalsIgnoreCase("deaths") || baseParam.equalsIgnoreCase("death_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("deaths")) {
             int deaths = statsManager.getPlayerDeaths(player.getUniqueId());
             if (deaths > 0) {
                 return String.valueOf(deaths);
@@ -209,7 +257,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return hasFallback ? fallback : "0";
         }
         
-        if (baseParam.equalsIgnoreCase("kills_players") || baseParam.equalsIgnoreCase("kills_players_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("kills_players")) {
             int kills = statsManager.getPlayerPlayerKills(player.getUniqueId());
             if (kills > 0) {
                 return String.valueOf(kills);
@@ -217,7 +265,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return hasFallback ? fallback : "0";
         }
         
-        if (baseParam.equalsIgnoreCase("kills_mobs") || baseParam.equalsIgnoreCase("kills_mobs_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("kills_mobs")) {
             int kills = statsManager.getPlayerMobKills(player.getUniqueId());
             if (kills > 0) {
                 return String.valueOf(kills);
@@ -225,7 +273,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
             return hasFallback ? fallback : "0";
         }
         
-        if (baseParam.equalsIgnoreCase("total_kills") || baseParam.equalsIgnoreCase("total_kills_fallbackMsg")) {
+        if (baseParam.equalsIgnoreCase("total_kills")) {
             int total = statsManager.getPlayerPlayerKills(player.getUniqueId()) + 
                        statsManager.getPlayerMobKills(player.getUniqueId());
             if (total > 0) {
@@ -241,6 +289,7 @@ public class PlaceholderHook extends PlaceholderExpansion {
     public @Nullable List<String> getPlaceholders() {
         List<String> placeholders = new ArrayList<>();
         
+        // Основные заполнители
         placeholders.add("%qqjudgment_is_active%");
         placeholders.add("%qqjudgment_end%");
         placeholders.add("%qqjudgment_time_end%");
@@ -252,6 +301,17 @@ public class PlaceholderHook extends PlaceholderExpansion {
         placeholders.add("%qqjudgment_progress%");
         placeholders.add("%qqjudgment_active_text%");
         
+        // Компоненты времени
+        placeholders.add("%qqjudgment_hours%");
+        placeholders.add("%qqjudgment_hours_padded%");
+        placeholders.add("%qqjudgment_minutes%");
+        placeholders.add("%qqjudgment_minutes_padded%");
+        placeholders.add("%qqjudgment_seconds%");
+        placeholders.add("%qqjudgment_seconds_padded%");
+        placeholders.add("%qqjudgment_total_minutes%");
+        placeholders.add("%qqjudgment_total_seconds%");
+        
+        // Топ игроков
         for (int i = 1; i <= 10; i++) {
             placeholders.add("%qqjudgment_top_" + i + "%");
             placeholders.add("%qqjudgment_top_" + i + "_name%");
@@ -259,5 +319,18 @@ public class PlaceholderHook extends PlaceholderExpansion {
         }
         
         return placeholders;
+    }
+    
+    // Вспомогательный класс для результата парсинга
+    private static class ParseResult {
+        String baseParam;
+        String fallback;
+        boolean hasFallback;
+        
+        ParseResult(String baseParam, String fallback, boolean hasFallback) {
+            this.baseParam = baseParam;
+            this.fallback = fallback;
+            this.hasFallback = hasFallback;
+        }
     }
 }
