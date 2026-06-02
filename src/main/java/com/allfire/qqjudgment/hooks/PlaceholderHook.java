@@ -65,46 +65,62 @@ public class PlaceholderHook extends PlaceholderExpansion {
     
     /**
      * Разбирает параметр на основную часть и fallback
-     * @param params входной параметр (например "kills_mobs_Никого")
-     * @return массив [основная_часть, fallback, hasFallback]
      */
     private ParseResult parseParams(String params) {
-        // Сначала проверяем top_ параметры (у них своя структура)
+        // ========== ТОП ПАРАМЕТРЫ (СПЕЦИАЛЬНАЯ ОБРАБОТКА) ==========
         if (params.startsWith("top_")) {
             String[] parts = params.split("_");
-            if (parts.length >= 2) {
-                // top_1, top_1_name, top_1_score - без fallback
-                if (parts.length == 2) {
-                    return new ParseResult(params, "", false);
-                }
-                // top_1_name, top_1_score - без fallback
-                if (parts.length == 3 && (parts[2].equals("name") || parts[2].equals("score"))) {
-                    return new ParseResult(params, "", false);
-                }
-                // top_1_Текст - с fallback
-                if (parts.length >= 3) {
-                    String base = parts[0] + "_" + parts[1];
-                    String fallback = params.substring(base.length() + 1);
-                    return new ParseResult(base, fallback, true);
-                }
+            
+            // top_1 - без fallback
+            if (parts.length == 2) {
+                return new ParseResult(params, "", false);
             }
+            
+            // top_1_name - без fallback
+            if (parts.length == 3 && parts[2].equals("name")) {
+                return new ParseResult(params, "", false);
+            }
+            
+            // top_1_score - без fallback
+            if (parts.length == 3 && parts[2].equals("score")) {
+                return new ParseResult(params, "", false);
+            }
+            
+            // top_1_name_Текст - С fallback
+            if (parts.length >= 3 && parts[2].equals("name")) {
+                String base = parts[0] + "_" + parts[1] + "_" + parts[2];
+                String fallback = params.substring(base.length() + 1);
+                return new ParseResult(base, fallback, true);
+            }
+            
+            // top_1_score_Текст - С fallback
+            if (parts.length >= 3 && parts[2].equals("score")) {
+                String base = parts[0] + "_" + parts[1] + "_" + parts[2];
+                String fallback = params.substring(base.length() + 1);
+                return new ParseResult(base, fallback, true);
+            }
+            
+            // top_1_Текст - С fallback (простой вариант)
+            if (parts.length >= 3) {
+                String base = parts[0] + "_" + parts[1];
+                String fallback = params.substring(base.length() + 1);
+                return new ParseResult(base, fallback, true);
+            }
+            
             return new ParseResult(params, "", false);
         }
         
-        // Проверяем основные параметры
+        // ========== ОСНОВНЫЕ ПАРАМЕТРЫ ==========
         for (String main : MAIN_PARAMS) {
             if (params.equals(main)) {
-                // Точное совпадение - без fallback
                 return new ParseResult(main, "", false);
             }
             if (params.startsWith(main + "_")) {
-                // Есть fallback после _
                 String fallback = params.substring(main.length() + 1);
                 return new ParseResult(main, fallback, true);
             }
         }
         
-        // Неизвестный параметр
         return new ParseResult(params, "", false);
     }
     
