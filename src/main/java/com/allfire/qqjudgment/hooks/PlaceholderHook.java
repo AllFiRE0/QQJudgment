@@ -243,7 +243,11 @@ public class PlaceholderHook extends PlaceholderExpansion {
                     }
                 } catch (NumberFormatException ignored) {}
             }
-            return hasFallback ? fallback : "";
+            // ЕСЛИ НЕТ ИГРОКА В ТОПЕ - ВОЗВРАЩАЕМ FALLBACK (ЕСЛИ ОН БЫЛ УКАЗАН)
+            if (hasFallback) {
+                return fallback;
+            }
+            return "";
         }
         
         if (player == null) return "";
